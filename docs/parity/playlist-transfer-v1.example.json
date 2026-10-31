@@ -1,0 +1,9 @@
+{
+  "format": "lenox-playlist",
+  "version": 1,
+  "name": "Synthetic test set",
+  "tracks": [
+    {"title": "Synthetic 440 Hz", "byteCount": 132344},
+    {"title": "Synthetic 660 Hz", "byteCount": 132344}
+  ]
+}
