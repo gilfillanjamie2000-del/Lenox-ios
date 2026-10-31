@@ -2,71 +2,57 @@
 
 **iOS development: Mike (Iammrmikeman). Product direction and integration decisions: Jamie.**
 
-One LENOX product, native iOS and Android implementations. Work is isolated in [draft PR #3](https://github.com/gilfillanjamie2000-del/Lenox-ios/pull/3), built on [draft PR #2](https://github.com/gilfillanjamie2000-del/Lenox-ios/pull/2). Neither application PR is merged or release-approved. Visual and functional parity with Android are **not achieved**.
+LENOX is one DJ and music-management product with native iOS and Android implementations. Current work is [draft PR #4: playlists and file saving](https://github.com/gilfillanjamie2000-del/Lenox-ios/pull/4), on `feature/ios-playlist-persistence-20261031`. It builds on [alignment PR #3](https://github.com/gilfillanjamie2000-del/Lenox-ios/pull/3) and [first-test PR #2](https://github.com/gilfillanjamie2000-del/Lenox-ios/pull/2). Application work is **not merged into main**, not independently approved and not a production release.
 
-## Latest verified progress — 31 October 2026
+## Current progress — 31 October 2026
 
-| Work | Evidence | Remaining gate |
+| Area | Evidence-backed state | Remaining gate |
 | --- | --- | --- |
-| Android reference | `feature/v3-deck-aware-mix-20261031` pinned to `54f01bb213a5d30eaba99ea1f16f1d547b1d82ed`; canonical HTML matches the inspected APK | Owner-design acceptance and paired platform checks |
-| Native navigation and mixer | Navy/purple/cyan interface, main feature destinations, responsive two-deck controls, real title search, explicit Load & play with failed-load protection | Full studio navigation, original artwork and equivalent library/features |
-| GitHub Mac alignment build | [Run 41214780323](https://github.com/gilfillanjamie2000-del/Lenox-ios/actions/runs/41214780323) succeeded on **`cdc101ac7e6b7c9f5826b21e394760798295617f`** | Independent source/security review and physical-device acceptance |
-| Retained test results | 41 portable Swift assertions, 43 alignment assertions and 12 generated-audio Simulator checks passed | Not real Files permission, audible device or comprehensive UI interaction tests |
-| Downloaded build verification | Artifact digest/CRC, all 19 manifest file hashes, IPA integrity, package/source identity and 9 source-file Git blobs checked | No signed iPhone installation or parity approval |
-| Original Android images | Exact hero PNG and corrected splash JPEG extracted and locally verified, without resizing/recompression | Binary files are in the separate asset ZIP; not committed or wired into native views yet |
-| Artwork importer | [Importer](scripts/import_android_artwork.py), [tests](Tests/test_android_artwork.py), [handover](docs/ANDROID_ARTWORK_IMPORT.md); 22 local tests passed and four deliberately broken integrity checks detected | Xcode resource registration, native home/splash implementation and artwork-inclusive build |
-| Persistent library/playlists and intelligence | Missing or limited in iOS; session-only file selection is not Android folder-scan parity | Shared contracts, implementation and two-way tests |
-| iPhone install | **Blocked:** no Apple signing/provisioning configured | Authorised signing and real-iPhone acceptance |
+| Saved library | Persistent titles, sizes, stable IDs and private iOS bookmarks implemented; references are resolved only on explicit loading | Real Files/provider permission, iCloud and revocation testing |
+| Playlists | Native create, rename, add/remove/reorder, cancel/save and confirmed deletion implemented | Independent review and physical-device UI acceptance |
+| Safe saving | Versioned private metadata; atomic writes; stale-edit and duplicate-name rejection; corrupt files preserved with writes blocked | Device lock/unlock, full storage and recovery acceptance |
+| Backups | Native Save backup to Files and import; JSON titles/sizes/order only, no audio, paths or bookmarks | Real exporter/picker save/cancel tests; Android adapter not implemented |
+| Local verification | 60 playlist + 41 mixer + 43 alignment assertions passed; four separately compiled guard mutations detected | Local Swift checks are not Apple-platform or device approval |
+| Native Mac validation | [Run 41221542950](https://github.com/gilfillanjamie2000-del/Lenox-ios/actions/runs/41221542950) started for exact source `f57009b840f96103a17265018d0e5cf692670a45` | Native result and artifact verification pending in this update |
+| Artwork | Earlier original hero/splash extraction and importer retained unchanged | Images still not wired into the native app; visual parity not achieved |
+| iPhone installation | **Blocked:** builds remain unsigned; no Apple signing/provisioning configured | Authorised signing and real-iPhone acceptance |
 
-The successful cloud run predates the importer/documentation commits. It does **not** contain the original Android artwork, and does not compile or test later branch commits. Importer tests validate extraction, not iOS UI. No new cloud run was started for the importer-only checkpoint.
+See the [playlist handover](docs/IOS_PLAYLIST_HANDOVER.md) and [exact-source local test receipt](docs/builds/2026-10-31-f57009b840f9-local.json). Later documentation commits are not claimed as newly compiled application revisions. Do not use an older green run to validate the playlist changes.
 
-## Matching unsigned IPA
+## What testers can do
 
-[Cloud verification receipt](docs/builds/2026-10-31-cdc101ac7e6b-cloud.json) records exactly what was checked. Download artifact `LENOX-iOS-ALIGNMENT-UNSIGNED-cdc101ac7e6b7c9f5826b21e394760798295617f` from the successful run. It contains the unsigned device IPA, separately labelled Simulator app, matching source archive, 7 route captures, test results and provenance. GitHub retention currently expires 7 November 2026 at 15:45 UTC.
+Select downloaded audio in Library, then create a playlist, add saved tracks and save it. Edit / rename supports ordering and removal; Cancel discards the draft. Load A/B never autoplays. Relink explicitly replaces a saved file reference across playlists without changing the original song. Delete playlist removes metadata only. Forget unused reference is blocked while a playlist still uses it. Release session file access keeps saved metadata.
 
-- IPA: `LENOX-iOS-0.1.0-cdc101ac7e6b-UNSIGNED.ipa`, 303825 bytes.
-- SHA-256: `b7941a6b75324e962bcb46bed6ad3d2bca427384a8981c238c42d45008f62a5d`.
-- Bundle: `app.lenox.ios.test`, version 0.1.0, minimum iOS 16.0.
-- Toolchain: Xcode 16.4 (16F6); actual ARM64 iOS-device executable.
-- **Unsigned: not directly installable on iPhone.** No provisioning profile or code-signature load command was present.
+**Save backup to Files exports playlist metadata, not music.** Imported entries receive new identities and no file permissions; relink them in Library before playback. The new `lenox-playlist` v1 format is documented and illustrated in the [synthetic transfer example](docs/parity/playlist-transfer-v1.example.json), but Android's current importer does not support it yet. Cross-platform backup compatibility is not claimed.
 
-Home and mixer captures were visually inspected. The home still has the explicit missing-artwork warning; the mixer scrolls. No matched Android/iPhone screenshot approval is claimed.
+Test-version limits remain explicit: 20 saved track references, 100 playlists, 64 MiB per audio file and 4 MiB metadata. Missing or stale file access retains playlist entries and asks for relinking. File size is not cryptographic content identity. The store is single-process, not a distributed lock or power-loss certification. A damaged saved file is preserved, not automatically reset. Uninstalling removes app-local data; exported metadata cannot restore the music itself.
 
-## Use the original assets, not substitute art
+## Build and reproduce
 
-Mike requested the real Android assets. The [artwork handover](docs/ANDROID_ARTWORK_IMPORT.md) identifies the exact images and hashes, tested import commands and remaining native integration steps. The original image bytes were preserved. The importer creates `ios/LENOX/AndroidArtwork` from an authorised local reference APK or checkout, and never copies or executes Android HTML.
-
-**The image binaries are supplied in the separately delivered verified asset ZIP, not committed to this branch by this work.** The importer does not edit the Xcode project or SwiftUI views. Staging resources alone must not be labelled visual parity or an artwork-inclusive IPA.
-
-Android is private and this repository is public. The asset request is not blanket permission to publish implementation code, service configuration, music or credentials. Jamie's direction supplied by Mike remains native reproduction of the approved interface, not a separate redesign. Android [design acceptance #28](https://github.com/gilfillanjamie2000-del/lunox-dj-automation/issues/28) remains a gate.
-
-## Build and test
-
-Open `ios/LENOX.xcodeproj` in Xcode on macOS, scheme `LENOX`. There are no third-party application packages.
+Open `ios/LENOX.xcodeproj` in Xcode, shared scheme `LENOX`, iOS 16+. No third-party application packages are required.
 
 ```bash
 mkdir -p .build
-swiftc ios/LENOX/MixPolicy.swift Tests/main.swift -o .build/policy-tests
-.build/policy-tests
-swiftc ios/LENOX/MixPolicy.swift Tests/Alignment/main.swift -o .build/alignment-tests
-.build/alignment-tests
-python3 scripts/check_source.py
-python3 scripts/check_alignment.py
-python3 -m unittest discover -s Tests -p 'test_android_artwork.py' -v
+swiftc ios/LENOX/PlaylistStore.swift Tests/Playlists/main.swift -o .build/playlist-tests
+.build/playlist-tests
+python3 scripts/test_playlist_mutations.py
+python3 scripts/check_playlists.py
 ```
 
-The Python command runs 18 synthetic importer cases and explicitly skips four real-APK integration tests unless `LENOX_TEST_APK` supplies the authorised local reference APK. See the handover for the integration command. Skips are not passes.
+The dedicated GitHub `ios-playlists.yml` job runs the existing mixer/alignment build plus two distinct Simulator launches: save on the first, reload on the second. It requires five write-phase and seven reopen-phase checks, using generated WAVs and app-container bookmarks. This is not real Files UI, iCloud-provider or physical-iPhone evidence. The job only uses the explicit public repository/feature branch and a standard `macos-15` runner, read-only token, pinned actions and bounded retention. No signing, deployment or automatic merge.
 
-On a reviewed macOS checkout, `bash scripts/ci-alignment.sh` compiles device and Simulator apps, performs 12 synthetic audio checks and captures seven routes. It is not a full UI interaction or physical-device test. Native Files pickers, permission prompts, safe areas and accessibility may require documented platform differences.
+## Previous verified milestones — preserved, not reused as current approval
 
-The test library is session-only with 20-file / 64 MiB-per-file limits. Tempo is manual 50–200%, not beat SYNC. Initial gain remains 50% on iOS versus Android's 100%; this is recorded rather than silently increased. Persistent playlists, reviewed-metadata AI, occasion filters, full planning tools and waveform capture remain unfinished. Never infer missing metadata or fabricate recognition/track counts.
+- First native test host `a7fc11fab969f79e8f96c26dd055b7ae9860232d`: [run 41211621619](https://github.com/gilfillanjamie2000-del/Lenox-ios/actions/runs/41211621619), 41 portable assertions and 10 generated-audio checks. [Receipt](docs/builds/2026-10-31-a7fc11fab969.json).
+- Native Android-reference alignment `cdc101ac7e6b7c9f5826b21e394760798295617f`: [run 41214780323](https://github.com/gilfillanjamie2000-del/Lenox-ios/actions/runs/41214780323), 41 + 43 assertions and 12 Simulator checks. Downloaded artifact/IPA/source hashes were checked. [Receipt](docs/builds/2026-10-31-cdc101ac7e6b-cloud.json). That older IPA has no persistent playlists or original artwork.
+- Original Android hero PNG and corrected splash JPEG were extracted without modification; importer tests and the separate asset package remain documented in [Android artwork import](docs/ANDROID_ARTWORK_IMPORT.md). This playlist work does not replace or discard that work, and does not claim the assets are bundled.
 
-## Continuity, credit and prior evidence
+The previous app already has native A/B playback, gain/channel/crossfader, seek and 50–200% manual tempo. Manual tempo is not beat SYNC; the centre-full crossfader is not a limiter. Initial iOS gain remains 50%, versus Android's 100%, pending an explicit shared decision.
 
-The [alignment handover](docs/ANDROID_REFERENCE_ALIGNMENT.md), [reference manifest](docs/parity/android-reference.json), [feature register](docs/FEATURE_PARITY.md), [policy v1.0](docs/CROSS_PLATFORM_POLICY_V1.md) and [handover template](docs/FEATURE_HANDOVER_TEMPLATE.md) remain authoritative project records within their scopes. Original ownership and collaboration credit are unchanged.
+## Shared development, credit and remaining work
 
-The first test host `a7fc11fab969f79e8f96c26dd055b7ae9860232d` passed [run 41211621619](https://github.com/gilfillanjamie2000-del/Lenox-ios/actions/runs/41211621619), with 41 portable assertions and 10 Simulator checks. Preserve its [receipt](docs/builds/2026-10-31-a7fc11fab969.json), [handover](docs/IOS_FIRST_TEST_HANDOVER.md) and [signing/device checklist](docs/IOS_BUILD_AND_ACCEPTANCE.md) as historical evidence for that exact source.
+The [policy](docs/CROSS_PLATFORM_POLICY_V1.md), [feature parity register](docs/FEATURE_PARITY.md), [handover template](docs/FEATURE_HANDOVER_TEMPLATE.md), [alignment handover](docs/ANDROID_REFERENCE_ALIGNMENT.md) and [device/signing checklist](docs/IOS_BUILD_AND_ACCEPTANCE.md) remain in force. Existing Android governance #52, iOS feasibility #62 and Linear LEN-7/LEN-8 assignments are not transferred. Current accessible Linear playlist searches returned no matches, so inventory completeness is not claimed.
 
-Existing [policy PR #1](https://github.com/gilfillanjamie2000-del/Lenox-ios/pull/1), Android [governance #52](https://github.com/gilfillanjamie2000-del/lunox-dj-automation/issues/52), [iOS feasibility #62](https://github.com/gilfillanjamie2000-del/lunox-dj-automation/issues/62) and Linear task ownership remain in force. Jamie decides unresolved differences and integration. A build or screenshot does not authorise release or establish parity.
+Android reference is `54f01bb213a5d30eaba99ea1f16f1d547b1d82ed` on `feature/v3-deck-aware-mix-20261031`. Reproduce behaviour and approved designs natively; do not publish private Android implementation, service configuration, music or secrets. Original contributor credit is retained. Jamie decides integration and unresolved differences.
 
-The existing workflow is restricted to this public repository, the alignment branch and standard `macos-15`, with read-only token scope, pinned actions and bounded retention. No Android application changes, live music/USB operations, paid runner, signing, TestFlight upload, permission changes or automatic merges were performed by this checkpoint.
+**Still pending:** real-iPhone Files/exporter/permissions acceptance, independent source/security review, original-artwork integration, complete library scanning, reviewed-metadata AI, occasion tools, EQ, waveforms, beat-aligned SYNC and full visual/functional parity. Source, tests, compile results, Simulator evidence, device acceptance and release approval are separate milestones. No invented completion percentage or automatic promotion is used.
