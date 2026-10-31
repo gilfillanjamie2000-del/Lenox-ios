@@ -29,3 +29,35 @@ struct PlaybackGate {
     mutating func invalidate() { generation &+= 1 }
     func accepts(_ token: UInt64) -> Bool { active && token == generation }
 }
+
+/// Tested navigation/formatting shared by the native reference-alignment views.
+enum StudioRoute: String, CaseIterable {
+    case home, library, playlists, occasions, assistant, mixer, status
+    var title: String {
+        switch self {
+        case .home: return "LENOX"
+        case .library: return "Library"
+        case .playlists: return "Playlists"
+        case .occasions: return "Occasions"
+        case .assistant: return "Mix Assistant"
+        case .mixer: return "Two-deck mixer"
+        case .status: return "System Status"
+        }
+    }
+    static func initial(arguments: [String]) -> StudioRoute {
+        #if targetEnvironment(simulator)
+        if let index = arguments.firstIndex(of: "--ci-screen"), arguments.indices.contains(index + 1),
+           let route = StudioRoute(rawValue: arguments[index + 1]) { return route }
+        #endif
+        return arguments.contains("--ci-smoke") ? .mixer : .home
+    }
+    static func matches(title: String, query: String) -> Bool {
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        return q.isEmpty || title.range(of: q, options: [.caseInsensitive, .diacriticInsensitive]) != nil
+    }
+    static func clock(_ seconds: Double) -> String {
+        guard seconds.isFinite, seconds >= 0, seconds < Double(Int.max / 2) else { return "0:00" }
+        let value = Int(seconds)
+        return "\(value / 60):" + String(format: "%02d", value % 60)
+    }
+}

@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "android": {
+    "repository": "gilfillanjamie2000-del/lunox-dj-automation",
+    "branch": "feature/v3-deck-aware-mix-20261031",
+    "source_commit": "54f01bb213a5d30eaba99ea1f16f1d547b1d82ed",
+    "canonical_ui": "app/index.html",
+    "canonical_ui_blob": "5504651b59f9af4d6419e45c1045c2899363fb64",
+    "packaged_ui": "assets/index.html",
+    "staging_ui": "android/app/src/main/assets/index.html",
+    "staging_file_tracked_at_reference": false,
+    "apk_sha256": "5e38c70b1d0a8f275d622659e02cf52cb4e7a35a3562df10eb37a7e6fd04cda0",
+    "workflow_run": 41194280918,
+    "visual_approval": "Pending: Android issue 28 remains open"
+  },
+  "ios_base": "06015b88d5c3ab011229acef6295081037039dfa",
+  "implementation": "Native SwiftUI. No Android HTML/Java implementation copied.",
+  "palette": {"background":"#0b1020","text":"#edf2ff","muted":"#b5c3df","panel":"#242044","panel_border":"#6850a7","cyan":"#45eaff"},
+  "dock": ["Home","Library","Playlists","Mix"],
+  "mixer_controls": {"gain_percent":[0,100],"channel_percent":[0,100],"crossfader_percent":[0,100],"tempo_percent":[50,200],"tempo_step_percent":1,"tempo_default_percent":100,"crossfader_default_percent":50,"curve":"centre-full, clamped; not equal-power"},
+  "known_differences": [
+    "Original hero/splash artwork not bundled; public redistribution not established.",
+    "Home artwork, splash animation, studio-tool grid and feature Previous/Next remain unmatched.",
+    "Native Files picker and system prompts are iOS-specific.",
+    "iOS selects at most 20 session files of at most 64 MiB; Android performs a folder scan.",
+    "iOS default gain stays 50% for safety; Android reference starts at 100%.",
+    "Saved playlists, metadata AI, occasion filtering, backup import/export and studio planning tools are not implemented in this iOS slice.",
+    "iOS uses a separate mixer route; the pinned Android native dock scrolls to mixer content on Home.",
+    "iOS has no waveform capture, no microphone permission, no separate single-track mini-player.",
+    "Font metrics, native menus and accessibility reflow are not pixel-equivalent.",
+    "No matched real-device screenshot, audible comparison or owner acceptance has occurred."
+  ],
+  "visual_parity_verified": false,
+  "functional_parity_verified": false,
+  "device_pair_tested": false,
+  "independent_review_passed": false,
+  "private_android_assets_published": false
+}

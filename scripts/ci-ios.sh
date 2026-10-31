@@ -55,10 +55,10 @@ python3 - <<'PY'
 import json, os
 with open('reports/simulator-smoke.json') as f: r=json.load(f)
 assert r['ok'] is True, r
-assert len(r['checks']) == 10 and all(x['passed'] is True for x in r['checks']), r
+assert len(r['checks']) == 12 and all(x['passed'] is True for x in r['checks']), r
 assert r['source'] == os.environ['LENOX_SOURCE_SHA'], r
 assert r['physical_device_tested'] is False
-print('10 simulator synthetic-audio checks PASS; not physical-device evidence')
+print('12 simulator synthetic-audio checks PASS; not physical-device evidence')
 PY
 DEVICE_APP=.build/device/Build/Products/Debug-iphoneos/LENOX.app
 test -s "$DEVICE_APP/LENOX"
@@ -98,5 +98,5 @@ pathlib.Path('out/READ_ME_FIRST.txt').write_text('LENOX iOS native test host. UN
 PY
 cp reports/simulator-smoke.json reports/policy-tests.json reports/simulator-mixer.png README_MEMORY_ZIP_POLICY.md out/
 if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
-  printf '## LENOX iOS test build\nSource: `%s`\n\n- Device and simulator compilation succeeded.\n- Portable Swift tests and 10 generated-audio simulator checks passed.\n- IPA is **UNSIGNED**, not directly installable on iPhone.\n- No physical-device or approved-design acceptance claimed.\n' "$SOURCE_SHA" >> "$GITHUB_STEP_SUMMARY"
+  printf '## LENOX iOS test build\nSource: `%s`\n\n- Device and simulator compilation succeeded.\n- Portable Swift tests and 12 generated-audio simulator checks passed.\n- IPA is **UNSIGNED**, not directly installable on iPhone.\n- No physical-device or approved-design acceptance claimed.\n' "$SOURCE_SHA" >> "$GITHUB_STEP_SUMMARY"
 fi
