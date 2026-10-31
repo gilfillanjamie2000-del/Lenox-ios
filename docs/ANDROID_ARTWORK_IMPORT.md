@@ -1,6 +1,6 @@
 # Original Android artwork: reproducible iOS staging
 
-**Status (31 October 2026): exact images extracted and locally verified; native UI/resource integration and a new IPA remain pending.**
+**Status (31 October 2026): exact images extracted and locally verified; native UI/resource integration and an artwork-inclusive IPA remain pending.** The earlier alignment build at `cdc101ac7e6b7c9f5826b21e394760798295617f` has now succeeded; see its [cloud receipt](builds/2026-10-31-cdc101ac7e6b-cloud.json). That build does not include these original images.
 
 Mike requested reuse of the Android assets rather than replacement graphics. The existing Android source and its artwork provenance are the reference. This step does not constitute Jamie's final visual acceptance or permission to republish unrelated private source, service configuration, music, or credentials.
 
@@ -43,15 +43,15 @@ These paths are command-line inputs, not included files or downloaded credential
 Local Python: **22 tests passed** (18 synthetic guard/parser cases and 4 integration tests against the exact retained APK). Four deliberately broken importer variants were detected by assertion failures, with zero test errors: omitted HTML identity check (1), omitted extracted-image identity check (1), omitted staged-image identity check (1), omitted symlink guard (2). Both images also decoded locally at their recorded dimensions.
 
 ```bash
-LENOX_TEST_APK=/path/to/Lenox-V3-Test-54f01bb213a5-debug.apk python3 -m unittest discover -s tests -v
+LENOX_TEST_APK=/path/to/Lenox-V3-Test-54f01bb213a5-debug.apk python3 -m unittest discover -s Tests -p 'test_android_artwork.py' -v
 ```
 
-Without `LENOX_TEST_APK`, the four real-APK integration tests are explicitly skipped. A skipped test is not a pass. These are importer tests, not SwiftUI compilation, screenshot parity, physical-device tests or independent approval.
+Without `LENOX_TEST_APK`, the four real-APK integration tests are explicitly skipped. A skipped test is not a pass. The new Python test uses the existing `Tests` directory, avoiding a competing lowercase directory on case-insensitive Macs. These are importer tests, not SwiftUI compilation, screenshot parity, physical-device tests or independent approval.
 
 ## Remaining native integration gates
 
 Use these exact resources in the existing native alignment work, not a second design. Extend `scripts/generate_project.py` to put the artwork folder into the target's Copy Bundle Resources phase, preserving image bytes. Replace the textual home-artwork panel with the original hero and retain the real Tap to Mix action. Use the original splash image with the Android reference's crop; implement or explicitly disclose any motion differences rather than inventing replacement rings. Do not treat a static splash as source-pixel animation parity.
 
-Verify both resource hashes inside the built device `.app`/IPA, run existing mixer/lifecycle tests, capture matched states and obtain independent review and Jamie's acceptance. The old compiled IPA and the queued alignment build do not contain this future wiring. No source audio, Android branch, signing configuration, permissions or merge settings were modified by the import work.
+Verify both resource hashes inside the built device `.app`/IPA, run existing mixer/lifecycle tests, capture matched states and obtain independent review and Jamie's acceptance. Neither previously compiled IPA contains this future wiring. No source audio, Android branch, signing configuration, permissions or merge settings were modified by the import work.
 
 Continue in existing iOS PR #3 and Android #94; do not create duplicate feature ownership. Update this receipt and the parity register only when resource integration and build evidence actually exist.
