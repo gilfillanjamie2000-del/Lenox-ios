@@ -1,14 +1,14 @@
 # LENOX iOS — native studio candidate
 
-**Active branch:** `feature/ios-performance-studio-20261102`, stacked on playlist PR #4. Mike develops iOS; Jamie retains product/integration authority.
+**Active branch:** `feature/ios-performance-studio-20261102`, [draft PR #5](https://github.com/gilfillanjamie2000-del/Lenox-ios/pull/5), stacked on playlist PR #4. Mike develops iOS; Jamie retains product/integration authority.
 
 This candidate adds original home artwork, the approved native boot video, searchable playlists with dedicated details, a graphite/lime native mixer and playback-linked spinning vinyl with bounded jog seeking. It also fixes the Files picker inactivity handoff and adds atomic multi-song import within the existing 20-track limit. Genuine PCM scratching, BPM/waveforms, EQ and SYNC remain unimplemented.
 
-**Native build/testing is pending for this candidate.** Source checks and asset hashes pass locally; these do not establish a compiled IPA, visual acceptance or phone success. The prior contributor iPhone XR report remains historical. Any generated IPA is unsigned and requires an authorised signing/sideloading process.
+**Native CI passed** on `4d7ce70794a378a0fa6cc517804ca0893ece3a2b`: device ARM64 and separate Simulator builds; 41 mixer / 45 alignment / 60 storage / 28 performance / 22 import assertions; 12 native audio / 5 write / 7 separate-launch restore / 29 performance-import-video checks; four storage mutation probes; two offline intro outcomes and all 8 UI scenarios. [Run](https://github.com/gilfillanjamie2000-del/Lenox-ios/actions/runs/41523915266) · [Artifact](https://github.com/gilfillanjamie2000-del/Lenox-ios/actions/runs/41523915266/artifacts/13180496183) · [Exact receipt](docs/builds/2026-11-02-4d7ce70794a3-studio.json). The IPA is **unsigned and not directly installable on iPhone**. Exact-build physical Files-provider testing and independent/owner review remain open. Genuine PCM scratching is not implemented.
 
 Read [the complete studio handover](docs/IOS_STUDIO_HANDOVER.md) for assets/publication authority, data contracts, tests, Android handover and recovery. The existing playlist schema, references, corruption protection and regression chain remain. No merge, signing, TestFlight or release is performed.
 
-Build with `bash scripts/ci-studio.sh` on the existing GitHub macOS/Xcode system. The standard macOS 15 Intel pool is used after GitHub could not allocate the macOS 15 ARM runner. Exact source/build receipts and artifact links will be recorded after verification.
+Build with `bash scripts/ci-studio.sh` on the existing GitHub macOS/Xcode system. The standard macOS 15 Intel pool is used after GitHub could not allocate the macOS 15 ARM runner. The compiled source is `4d7ce70794a378a0fa6cc517804ca0893ece3a2b`; later documentation commits are not new application builds. Landscape rotation exposes A/mixer/B; portrait uses focused deck controls. Controls are bounded by the window in the UI regression.
 
 ---
 

@@ -1,6 +1,6 @@
 # Current native studio continuation — 2 November 2026
 
-Branch `feature/ios-performance-studio-20261102`, based on playlist PR #4. [Two-way handover](IOS_STUDIO_HANDOVER.md). Native results for this candidate are pending; no platform parity or device acceptance is claimed.
+Branch `feature/ios-performance-studio-20261102`, based on playlist PR #4. [Two-way handover](IOS_STUDIO_HANDOVER.md). Native CI and all 8 UI scenarios passed on `4d7ce70794a378a0fa6cc517804ca0893ece3a2b`. [Run](https://github.com/gilfillanjamie2000-del/Lenox-ios/actions/runs/41523915266) · [receipt](builds/2026-11-02-4d7ce70794a3-studio.json). Paired Android visual comparison and real-device acceptance remain open. The JSON in `docs/parity/android-reference.json` is the frozen historical alignment contract, not a status claim for these new features.
 
 | Feature | iOS candidate | Android reference / outstanding gate |
 | --- | --- | --- |

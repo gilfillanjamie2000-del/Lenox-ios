@@ -62,3 +62,8 @@ Local results: 60 playlist assertions, 41 mixer assertions and 43 alignment asse
 The new native probe uses synthetic WAVs and app-container bookmarks. Write launch expects five checks; read launch expects seven checks after actual process termination/relaunch. It exercises persistent names/order, explicit bookmark-backed loading, no autoplay and permission-free metadata import. It does not exercise the real Files picker, exporter save/cancel UI, iCloud providers, OS-delivered background/permission changes or hardware audio.
 
 Before integration: inspect exact-head cloud results and package provenance; independently review storage/security and shared behaviour; test real Files selection, relink/cancel, save cancellation, duplicate names, reorder/cancel/stale edits, file disappearance, locked-device reopen, corrupt data and full storage on a signed test iPhone. Jamie decides integration. Artwork integration, recommendations, EQ, beat sync and full visual/functional parity remain separate unfinished work.
+
+
+## Native studio continuation — 2 November 2026
+
+[Draft PR #5](https://github.com/gilfillanjamie2000-del/Lenox-ios/pull/5) continues this preserved milestone. Compiled source `4d7ce70794a378a0fa6cc517804ca0893ece3a2b` adds the two explicitly authorised original assets, native launch video, playlist details/editor, adaptive spinning/jog mixer and multi-import/lifecycle repair. [Studio handover](IOS_STUDIO_HANDOVER.md) · [exact receipt](builds/2026-11-02-4d7ce70794a3-studio.json) · [successful run](https://github.com/gilfillanjamie2000-del/Lenox-ios/actions/runs/41523915266). The earlier evidence above remains historical. The new IPA is unsigned; actual phone Files-provider acceptance and genuine PCM scratching remain open.
