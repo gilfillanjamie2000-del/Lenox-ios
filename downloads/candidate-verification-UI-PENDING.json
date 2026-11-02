@@ -1,0 +1,25 @@
+{
+  "source": "861b4aeb268eca1cd1cabbe43205632bb0bab003",
+  "ipa": "LENOX-iOS-0.1.1-b2-861b4aeb268e-UNSIGNED.ipa",
+  "ipa_bytes": 3393280,
+  "ipa_sha256": "51bbf616f4774e6d2f8b0cde1c1b7afbade1ebf80262110598ddb1dd95979b4f",
+  "ipa_git_blob": "888ca0be790639e149acc2edf02a9f49ebac6d0a",
+  "version": "0.1.1",
+  "build": "2",
+  "signing": "UNSIGNED",
+  "directly_installable_on_iphone": false,
+  "native_checks": 34,
+  "native_all_pass": true,
+  "ui_scenarios": 11,
+  "ui_failed": 3,
+  "ui_failure": "Files fixture filename selector failed before any file was selected; corrected test-only follow-up is running",
+  "full_ci_pass": false,
+  "physical_device_acceptance": false,
+  "source_blobs_verified": 60,
+  "core_artifact_hashes_verified": 26,
+  "device_components": [
+    "Payload/LENOX.app/LENOX.debug.dylib",
+    "Payload/LENOX.app/__preview.dylib",
+    "Payload/LENOX.app/LENOX"
+  ]
+}
