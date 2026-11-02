@@ -49,6 +49,11 @@ try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: contai
 check("symlink to same container accepted", FileAccessPolicy.isContainerURL(alias.appendingPathComponent("song.wav"), container: container))
 let outside = container.appendingPathComponent("outside")
 try FileManager.default.createSymbolicLink(at: outside, withDestinationURL: container.deletingLastPathComponent())
-check("symlink escape rejected", !FileAccessPolicy.isContainerURL(outside.appendingPathComponent("not-authorised.wav"), container: container))
+// Foundation resolves an existing file; a missing leaf has no readable target.
+// Use a real file outside the container to exercise the permission boundary.
+let externalFile = container.deletingLastPathComponent().appendingPathComponent("Lenox-external-\(UUID().uuidString).wav")
+try Data([2]).write(to: externalFile)
+defer { try? FileManager.default.removeItem(at: externalFile) }
+check("symlink escape rejected", !FileAccessPolicy.isContainerURL(outside.appendingPathComponent(externalFile.lastPathComponent), container: container))
 print("{\"import_assertions_passed\":\(passed),\"failed\":\(failed)}")
 exit(failed == 0 ? 0 : 1)
