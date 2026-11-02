@@ -10,7 +10,7 @@ final class StudioUITests: XCTestCase {
         XCTAssertTrue(app.buttons["dock-home"].waitForExistence(timeout: 15))
     }
     private func capture(_ name: String) {
-        let attachment = XCTAttachment(screenshot: app.screenshot())
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
     }
     func testOriginalHomeAndMoreRoutes() {
@@ -74,11 +74,19 @@ final class StudioUITests: XCTestCase {
         app.buttons["mixer-play-0"].tap()
         XCTAssertEqual(app.descendants(matching: .any)["platter-0"].value as? String, "Playing")
         XCUIDevice.shared.orientation = .landscapeLeft
+        let rotated = NSPredicate { _, _ in self.app.windows.firstMatch.frame.width > self.app.windows.firstMatch.frame.height }
+        expectation(for: rotated, evaluatedWith: nil)
+        waitForExpectations(timeout: 5)
         XCTAssertTrue(app.buttons["mixer-load-1"].waitForExistence(timeout: 3))
+        let window = app.windows.firstMatch.frame
+        for element in [app.buttons["mixer-exit"], app.buttons["mixer-load-0"], app.buttons["mixer-load-1"], app.buttons["mixer-play-0"], app.sliders["crossfader"]] {
+            XCTAssertTrue(window.contains(element.frame), "Control outside visible landscape window: \(element.identifier) \(element.frame) in \(window)")
+        }
         XCTAssertTrue(app.buttons["mixer-play-0"].isHittable)
         XCTAssertTrue(app.sliders["crossfader"].isHittable)
         capture("mixer-landscape")
         app.buttons["mixer-exit"].tap()
+        XCTAssertTrue(app.buttons["dock-mixer"].waitForExistence(timeout: 5))
         app.buttons["dock-mixer"].tap()
         XCTAssertTrue(app.staticTexts["UI-tone-440"].exists)
         XCTAssertFalse(app.buttons["intro-skip"].exists)

@@ -2,6 +2,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p reports .build
+# Keep readable UI attachments even when an assertion stops the pipeline.
+trap 'if [[ -d reports/studio-ui.xcresult && ! -d out/ui-captures ]]; then mkdir -p reports/ui-failure-captures; xcrun xcresulttool export attachments --path reports/studio-ui.xcresult --output-path reports/ui-failure-captures || true; fi' EXIT
 xcodebuild -version | tee reports/studio-xcode-version.txt
 swift --version | tee reports/studio-swift-version.txt
 git rev-parse HEAD | tee reports/studio-source.txt

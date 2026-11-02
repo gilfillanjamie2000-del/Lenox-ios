@@ -76,7 +76,7 @@ struct MixerScreen: View {
                 Text(audio.message).font(.caption2).foregroundStyle(.secondary).lineLimit(2)
                     .accessibilityIdentifier("mixer-result")
             }.padding(.horizontal, 12).padding(.bottom, 8)
-                .frame(width: geometry.size.width, height: geometry.size.height)
+                .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
         }
         .background(MixerStyle.graphite.ignoresSafeArea())
         .tint(MixerStyle.lime).foregroundStyle(.white).buttonStyle(.bordered)
@@ -121,8 +121,10 @@ struct MixerScreen: View {
                 }
             }
             crossfader
-            Button("Gain") { sheet = .levels }.frame(minHeight: 44)
-            Button("Pause both") { audio.pauseAll() }.frame(minHeight: 44)
+            HStack(spacing: 4) {
+                Button("Gain") { sheet = .levels }.frame(minHeight: 44)
+                Button("Pause both") { audio.pauseAll() }.frame(minHeight: 44)
+            }.font(.caption)
         }
         .padding(8).background(MixerStyle.panel, in: RoundedRectangle(cornerRadius: 16))
     }

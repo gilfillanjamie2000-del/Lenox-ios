@@ -51,7 +51,7 @@ enum ApprovedAssets {
             guard self.gate.begin(reduceMotion: false, assetValid: valid) else { self.finish("checksum-failure"); return }
             let item = AVPlayerItem(url: url)
             let player = AVPlayer(playerItem: item)
-            player.isMuted = true
+            player.isMuted = self.muted
             self.player = player
             item.publisher(for: \.status).receive(on: DispatchQueue.main).sink { [weak self] status in
                 if status == .failed { self?.finish("decode-failure") }
@@ -88,7 +88,8 @@ struct LaunchExperience: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var intro = IntroPlayer()
     var body: some View {
-        ZStack {
+        GeometryReader { window in
+          ZStack {
             // The audio/library owner lives above the launch presentation.
             StudioView().opacity(intro.finished ? 1 : 0)
                 .allowsHitTesting(intro.finished).accessibilityHidden(!intro.finished)
@@ -106,8 +107,9 @@ struct LaunchExperience: View {
                             Button("Skip intro") { intro.finish() }.accessibilityIdentifier("intro-skip")
                         }.font(.headline).buttonStyle(.borderedProminent).tint(.black.opacity(0.75)).padding(20)
                     }
-                }.accessibilityIdentifier("intro-screen")
+                }
             }
+          }.frame(width: window.size.width, height: window.size.height)
         }
         .task { intro.start(reduceMotion: reduceMotion) }
         .onChange(of: reduceMotion) { if $0 { intro.finish("reduce-motion") } }
