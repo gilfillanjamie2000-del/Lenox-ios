@@ -12,7 +12,7 @@ final class SelectedTrack: Identifiable {
         self.id = id
         guard url.isFileURL else { throw AudioFailure.invalidFile }
         let access = synthetic ? false : url.startAccessingSecurityScopedResource()
-        let local = url.resolvingSymlinksInPath().standardizedFileURL.path.hasPrefix(NSHomeDirectory() + "/")
+        let local = FileAccessPolicy.isContainerURL(url)
         guard access || local else { throw AudioFailure.permission }
         do {
             let info = try url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
@@ -266,7 +266,7 @@ struct DeckLoadRequest {
             guard let url = try result.get().first, url.isFileURL else { throw PlaylistFailure.invalid }
             let scoped = url.startAccessingSecurityScopedResource()
             defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-            guard scoped || url.resolvingSymlinksInPath().path.hasPrefix(NSHomeDirectory() + "/") else { throw AudioFailure.permission }
+            guard scoped || FileAccessPolicy.isContainerURL(url) else { throw AudioFailure.permission }
             let data = try coordinatedRead(url) { item in
                 let handle = try FileHandle(forReadingFrom: item); defer { try? handle.close() }
                 return try handle.read(upToCount: PlaylistPolicy.maxBytes + 1) ?? Data()

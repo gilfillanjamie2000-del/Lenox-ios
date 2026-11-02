@@ -1,5 +1,14 @@
 import Foundation
 
+enum FileAccessPolicy {
+    static func isContainerURL(_ url: URL, container: URL = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)) -> Bool {
+        guard url.isFileURL, container.isFileURL else { return false }
+        let root = container.resolvingSymlinksInPath().standardizedFileURL.path
+        let path = url.resolvingSymlinksInPath().standardizedFileURL.path
+        return path.hasPrefix(root + "/")
+    }
+}
+
 /// Platform-neutral contract. Invalid control data fails silent, not louder.
 enum MixPolicy {
     static func level(deck: Int, crossfade: Double, gain: Double, channel: Double) -> Float {
