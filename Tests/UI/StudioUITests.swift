@@ -19,9 +19,22 @@ final class StudioUITests: XCTestCase {
         let importButton = app.buttons["selectAudio"]
         XCTAssertTrue(importButton.waitForExistence(timeout: 15))
         importButton.tap()
+        // UIKit starts in ordinary browsing mode. Enter its actual Select mode
+        // so both the one-file and multi-file cases exercise the Open action.
+        let select = app.buttons["Select"]
+        if !select.exists {
+            let actions = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "DOC.itemCollectionMenuButton")).firstMatch
+            XCTAssertTrue(actions.waitForExistence(timeout: 15), app.debugDescription)
+            actions.tap()
+        }
+        XCTAssertTrue(select.waitForExistence(timeout: 5), app.debugDescription)
+        select.tap()
     }
     private func selectFile(_ name: String) {
-        let file = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS[c] %@", name)).firstMatch
+        // Files separates known extensions in its accessibility label, e.g.
+        // "Picker-one, wav, ...", despite showing a filename on screen.
+        let stem = (name as NSString).deletingPathExtension
+        let file = app.cells.matching(NSPredicate(format: "label BEGINSWITH[c] %@", stem)).firstMatch
         XCTAssertTrue(file.waitForExistence(timeout: 15), app.debugDescription)
         file.tap()
     }
