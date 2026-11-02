@@ -20,9 +20,9 @@ jobs:
           ref: f57009b840f96103a17265018d0e5cf692670a45
           persist-credentials: false
       - name: Reproduce original baseline before candidate promotion
-        env:
-          GITHUB_SHA: f57009b840f96103a17265018d0e5cf692670a45
-        run: bash scripts/ci-playlists.sh
+        run: |
+          test "$(git rev-parse HEAD)" = f57009b840f96103a17265018d0e5cf692670a45
+          GITHUB_SHA=f57009b840f96103a17265018d0e5cf692670a45 bash scripts/ci-playlists.sh
       - name: Preserve baseline artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
