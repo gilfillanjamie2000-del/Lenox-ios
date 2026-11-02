@@ -504,6 +504,7 @@ struct DeckLoadRequest {
     private func performanceSmoke() async {
         #if targetEnvironment(simulator)
         var checks: [[String: Any]] = []
+        var observedIntroDuration: Double?
         func record(_ name: String, _ value: Bool) { checks.append(["name": name, "passed": value]) }
         do {
             for hz in [440.0, 660.0] {
@@ -567,19 +568,22 @@ struct DeckLoadRequest {
             record("import original bytes unchanged", try Data(contentsOf: importURLs[0]) == originalData)
             // Decode an actual frame from the approved offline video, separate from UI timeout fallback.
             if let url = ApprovedAssets.url("lenox-intro.mp4") {
-                let videoChecks = await Task.detached(priority: .userInitiated) { () -> [Bool] in
+                let videoChecks = await Task.detached(priority: .userInitiated) { () -> (valid: Bool, decoded: Bool, duration: Double) in
                     let asset = AVURLAsset(url: url)
                     let generator = AVAssetImageGenerator(asset: asset)
                     let frame = try? generator.copyCGImage(at: CMTime(seconds: 1, preferredTimescale: 600), actualTime: nil)
-                    return [ApprovedAssets.verified(url, hash: ApprovedAssets.introHash, limit: 2_300_000),
-                            frame != nil, abs(CMTimeGetSeconds(asset.duration) - 12) < 0.3]
+                    return (ApprovedAssets.verified(url, hash: ApprovedAssets.introHash, limit: 2_300_000),
+                            frame != nil, CMTimeGetSeconds(asset.duration))
                 }.value
-                record("bundled intro exact checksum", videoChecks[0])
-                record("native offline H264 frame decode", videoChecks[1])
-                record("approved intro duration", videoChecks[2])
+                observedIntroDuration = videoChecks.duration
+                record("bundled intro exact checksum", videoChecks.valid)
+                record("native offline H264 frame decode", videoChecks.decoded)
+                // The brief rounded to 12 s. The pinned MP4 mvhd is 12340/1000 s.
+                record("approved intro duration", videoChecks.duration.isFinite && abs(videoChecks.duration - 12.34) < 0.05)
             } else { record("approved intro missing", false) }
         } catch { record("performance exception: \(error.localizedDescription)", false) }
-        let report: [String: Any] = ["source": Bundle.main.object(forInfoDictionaryKey: "LENOXSourceCommit") as? String ?? "unknown", "checks": checks, "ok": !checks.isEmpty && checks.allSatisfy { $0["passed"] as? Bool == true }, "physical_device_tested": false, "scratch_audio_implemented": false]
+        var report: [String: Any] = ["source": Bundle.main.object(forInfoDictionaryKey: "LENOXSourceCommit") as? String ?? "unknown", "checks": checks, "ok": !checks.isEmpty && checks.allSatisfy { $0["passed"] as? Bool == true }, "physical_device_tested": false, "scratch_audio_implemented": false]
+        if let duration = observedIntroDuration, duration.isFinite { report["intro_duration_seconds"] = duration }
         let file = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("performance-smoke.json")
         do { try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys]).write(to: file, options: .atomic) }
         catch { message = "Could not save performance test report." }

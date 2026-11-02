@@ -11,6 +11,15 @@ swiftc ios/LENOX/MixPolicy.swift ios/LENOX/PerformancePolicy.swift Tests/Perform
 swiftc ios/LENOX/MixPolicy.swift ios/LENOX/PlaylistStore.swift Tests/Import/main.swift -o .build/import-tests
 .build/import-tests | tee reports/import-policy.json
 python3 scripts/test_playlist_mutations.py | tee reports/playlist-mutations.txt
+# Compile the new UI-test target before waiting for a cold Simulator boot.
+# The following established build chain reuses this derived-data directory.
+python3 scripts/generate_project.py
+git diff --exit-code -- ios/LENOX.xcodeproj
+xcodebuild -project ios/LENOX.xcodeproj -scheme LENOX -configuration Debug \
+  -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+  -derivedDataPath .build/simulator -resultBundlePath reports/ui-preflight.xcresult \
+  CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= \
+  LENOX_SOURCE_SHA="$GITHUB_SHA" build-for-testing 2>&1 | tee reports/ui-preflight.log
 # Reuse the complete established native build + baseline regression chain.
 bash scripts/ci-playlists.sh
 UDID="$(python3 - <<'PY'
