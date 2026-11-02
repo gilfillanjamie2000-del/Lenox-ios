@@ -1,0 +1,40 @@
+name: LENOX iOS baseline on standard macOS 15 Intel
+on:
+  push:
+    branches: [feature/ios-performance-studio-20261102]
+    paths: ['.github/workflows/ios-studio.yml']
+permissions:
+  contents: read
+concurrency:
+  group: lenox-ios-studio-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  baseline:
+    if: github.repository == 'gilfillanjamie2000-del/Lenox-ios' && github.event.repository.private == false && github.ref == 'refs/heads/feature/ios-performance-studio-20261102'
+    runs-on: macos-15-intel
+    timeout-minutes: 25
+    steps:
+      - name: Exact unchanged baseline checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: f57009b840f96103a17265018d0e5cf692670a45
+          persist-credentials: false
+      - name: Reproduce original baseline before candidate promotion
+        env:
+          GITHUB_SHA: f57009b840f96103a17265018d0e5cf692670a45
+        run: bash scripts/ci-playlists.sh
+      - name: Preserve baseline artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: LENOX-iOS-BASELINE-UNSIGNED-f57009b840f96103a17265018d0e5cf692670a45
+          path: out/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Preserve diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: LENOX-iOS-baseline-diagnostics
+          path: reports/
+          if-no-files-found: warn
+          retention-days: 3
