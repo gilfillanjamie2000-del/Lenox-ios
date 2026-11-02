@@ -73,7 +73,7 @@ struct DeckLoadRequest {
         if ProcessInfo.processInfo.arguments.contains(where: { $0.hasPrefix("--ci-playlists-") }) {
             root = fm.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("PlaylistTest", isDirectory: true)
         }
-        if ProcessInfo.processInfo.arguments.contains("--ci-ui-fixture") || ProcessInfo.processInfo.arguments.contains("--ci-performance") {
+        if ProcessInfo.processInfo.arguments.contains("--ci-ui-fixture") || ProcessInfo.processInfo.arguments.contains("--ci-performance") || ProcessInfo.processInfo.arguments.contains("--ci-picker-fixture") {
             root = fm.temporaryDirectory.appendingPathComponent("LENOX-fixture-\(UUID().uuidString)", isDirectory: true)
         }
         #endif
@@ -90,6 +90,7 @@ struct DeckLoadRequest {
     private var playlistSmokeStarted = false
     private var performanceStarted = false
     private var uiFixtureStarted = false
+    private var pickerFixtureStarted = false
     @Published var crossfade = 0.5 { didSet { updateLevels() } }
     @Published var gains = [0.5, 0.5] { didSet { updateLevels() } }
     @Published var channels = [1.0, 1.0] { didSet { updateLevels() } }
@@ -129,7 +130,7 @@ struct DeckLoadRequest {
                 case .backup(let result): acceptPlaylistBackup(result)
                 }
             }
-            runSmokeIfRequested(); runPlaylistSmokeIfRequested(); runPerformanceIfRequested(); prepareUIFixtureIfRequested()
+            runSmokeIfRequested(); runPlaylistSmokeIfRequested(); runPerformanceIfRequested(); prepareUIFixtureIfRequested(); preparePickerFixtureIfRequested()
         }
     }
     func beginPicker(relinkTo id: UUID? = nil) -> Bool {
@@ -156,11 +157,15 @@ struct DeckLoadRequest {
             if let id = relinkID {
                 guard urls.count == 1 else { throw PlaylistFailure.invalid }
                 let track = try SelectedTrack(url: urls[0], id: id)
+                try validateAudio(track)
                 try persistSelected(track, replacing: id, revision: pickerRevision)
                 message = "Relinked \(track.title). Original audio is unchanged."
             } else {
                 guard urls.count <= PlaylistPolicy.maxTracks - library.tracks.count else { throw PlaylistFailure.limit }
                 let selected = try urls.map { try SelectedTrack(url: $0) }
+                // The Files picker accepts generic provider-labelled items. Decode
+                // every candidate before committing any references; never play it.
+                try selected.forEach { try validateAudio($0) }
                 let saved = try selected.map { track in
                     let bookmark = try coordinatedRead(track.url) { url in
                         try url.bookmarkData(options: .minimalBookmark, includingResourceValuesForKeys: nil, relativeTo: nil)
@@ -173,7 +178,21 @@ struct DeckLoadRequest {
             }
         } catch {
             syncLibrary()
-            message = "Import was not saved: \(error.localizedDescription) Existing library is unchanged."
+            if (error as NSError).domain == NSCocoaErrorDomain && (error as NSError).code == NSUserCancelledError {
+                message = "Import cancelled. Existing library is unchanged."
+            } else {
+                message = "Import was not saved: \(error.localizedDescription) Existing library is unchanged."
+            }
+        }
+    }
+    private func validateAudio(_ track: SelectedTrack) throws {
+        try coordinatedRead(track.url) { url in
+            do {
+                let candidate = try AVAudioPlayer(contentsOf: url)
+                guard candidate.duration.isFinite, candidate.duration > 0, candidate.prepareToPlay() else { throw AudioFailure.prepare }
+                // prepareToPlay validates decoding without starting audio output.
+                candidate.stop()
+            } catch { throw AudioFailure.prepare }
         }
     }
     private func persistSelected(_ track: SelectedTrack, replacing: UUID?, revision: UInt64) throws {
@@ -478,6 +497,20 @@ struct DeckLoadRequest {
         catch { message = "Could not write playlist CI report." }
         #endif
     }
+    private func preparePickerFixtureIfRequested() {
+        #if targetEnvironment(simulator)
+        guard ProcessInfo.processInfo.arguments.contains("--ci-picker-fixture"), !pickerFixtureStarted else { return }
+        pickerFixtureStarted = true
+        do {
+            let folder = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("LENOX Import UI", isDirectory: true)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try Self.tone(550).write(to: folder.appendingPathComponent("Picker-one.wav"), options: .atomic)
+            try Self.tone(770).write(to: folder.appendingPathComponent("Picker-two.bin"), options: .atomic)
+            try Data("This is not audio.".utf8).write(to: folder.appendingPathComponent("Picker-invalid.txt"), options: .atomic)
+        } catch { message = "Picker fixture failed: \(error.localizedDescription)" }
+        #endif
+    }
     private func prepareUIFixtureIfRequested() {
         #if targetEnvironment(simulator)
         guard ProcessInfo.processInfo.arguments.contains("--ci-ui-fixture"), !uiFixtureStarted else { return }
@@ -566,6 +599,16 @@ struct DeckLoadRequest {
             _ = beginPicker(); acceptSelection(.success([]))
             record("empty selection preserves library", library == afterImport)
             record("import original bytes unchanged", try Data(contentsOf: importURLs[0]) == originalData)
+            let generic = FileManager.default.temporaryDirectory.appendingPathComponent("Generic-audio.bin")
+            try Self.tone(880).write(to: generic, options: .atomic)
+            _ = beginPicker(); acceptSelection(.success([generic]))
+            record("generic-labelled playable audio imports", library.tracks.count == afterImport.tracks.count + 1)
+            let validState = library
+            let invalid = FileManager.default.temporaryDirectory.appendingPathComponent("Not-a-song.txt")
+            try Data("Not audio".utf8).write(to: invalid, options: .atomic)
+            _ = beginPicker(); acceptSelection(.success([generic, invalid]))
+            record("undecodable batch preserves all saved references", library == validState)
+            record("decode validation never starts either deck", decks.allSatisfy { !$0.playing })
             // Decode an actual frame from the approved offline video, separate from UI timeout fallback.
             if let url = ApprovedAssets.url("lenox-intro.mp4") {
                 let videoChecks = await Task.detached(priority: .userInitiated) { () -> (valid: Bool, decoded: Bool, duration: Double) in

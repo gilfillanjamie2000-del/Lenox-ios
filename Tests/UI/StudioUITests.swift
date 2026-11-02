@@ -13,6 +13,63 @@ final class StudioUITests: XCTestCase {
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
     }
+    private func openRealFilesPicker() {
+        app.launchArguments = ["--ci-picker-fixture", "--ci-screen", "library"]
+        app.launch()
+        let importButton = app.buttons["selectAudio"]
+        XCTAssertTrue(importButton.waitForExistence(timeout: 15))
+        importButton.tap()
+    }
+    private func selectFile(_ name: String) {
+        let file = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS[c] %@", name)).firstMatch
+        XCTAssertTrue(file.waitForExistence(timeout: 15), app.debugDescription)
+        file.tap()
+    }
+    private func confirmOpen(_ captureName: String) {
+        let open = app.buttons["Open"]
+        XCTAssertTrue(open.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(open.isEnabled, "Files Open must be enabled after selection")
+        capture(captureName)
+        open.tap()
+    }
+    func testFilesOpenImportsMultipleActualSelectionsAndCancelPreservesThem() {
+        openRealFilesPicker()
+        selectFile("Picker-one.wav")
+        selectFile("Picker-two.bin")
+        confirmOpen("files-multi-open-enabled")
+        let result = app.staticTexts["import-result"]
+        let imported = NSPredicate(format: "label CONTAINS %@", "Imported 2 songs")
+        expectation(for: imported, evaluatedWith: result)
+        waitForExpectations(timeout: 15)
+        XCTAssertTrue(app.staticTexts["Picker-one"].exists)
+        XCTAssertTrue(app.staticTexts["Picker-two"].exists)
+        capture("files-multi-imported")
+        app.buttons["selectAudio"].tap()
+        XCTAssertTrue(app.buttons["Cancel"].waitForExistence(timeout: 5))
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(app.staticTexts["Picker-one"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Picker-two"].exists)
+    }
+    func testFilesOpenImportsOneActualSelection() {
+        openRealFilesPicker()
+        selectFile("Picker-one.wav")
+        confirmOpen("files-single-open-enabled")
+        let imported = NSPredicate(format: "label CONTAINS %@", "Imported 1 song")
+        expectation(for: imported, evaluatedWith: app.staticTexts["import-result"])
+        waitForExpectations(timeout: 15)
+        app.buttons["load-0-Picker-one"].tap()
+        XCTAssertTrue(app.buttons["mixer-play-0"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.descendants(matching: .any)["platter-0"].value as? String, "Paused")
+    }
+    func testFilesOpenRejectsUndecodableSelectionWithoutSavingIt() {
+        openRealFilesPicker()
+        selectFile("Picker-invalid.txt")
+        confirmOpen("files-invalid-selection")
+        let rejected = NSPredicate(format: "label CONTAINS %@", "Import was not saved")
+        expectation(for: rejected, evaluatedWith: app.staticTexts["import-result"])
+        waitForExpectations(timeout: 15)
+        XCTAssertTrue(app.staticTexts["No music saved"].exists)
+    }
     func testOriginalHomeAndMoreRoutes() {
         launch()
         XCTAssertTrue(app.buttons["lenoxMix"].exists)

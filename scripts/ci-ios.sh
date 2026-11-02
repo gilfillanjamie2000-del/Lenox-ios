@@ -70,7 +70,9 @@ grep -Eq 'platform[[:space:]]+IOS$' reports/device-mach-o.txt
 test ! -e "$DEVICE_APP/embedded.mobileprovision"
 mkdir -p .build/package/Payload
 ditto "$DEVICE_APP" .build/package/Payload/LENOX.app
-NAME="LENOX-iOS-0.1.0-${SOURCE_SHA:0:12}-UNSIGNED.ipa"
+APP_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$DEVICE_APP/Info.plist")"
+APP_BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$DEVICE_APP/Info.plist")"
+NAME="LENOX-iOS-${APP_VERSION}-b${APP_BUILD}-${SOURCE_SHA:0:12}-UNSIGNED.ipa"
 (cd .build/package && /usr/bin/zip -qry "../../out/$NAME" Payload)
 unzip -t "out/$NAME" > reports/ipa-zip-test.txt
 # Simulator .app is separately labelled; it cannot be installed on an iPhone.

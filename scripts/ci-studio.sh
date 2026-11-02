@@ -45,11 +45,11 @@ cp "$DATA_DIR/Documents/performance-smoke.json" reports/performance-smoke.json
 python3 - <<'PY'
 import json,os
 r=json.load(open('reports/performance-smoke.json'))
-assert r['ok'] is True and len(r['checks']) == 29, r
+assert r['ok'] is True and len(r['checks']) == 32, r
 assert all(x['passed'] is True for x in r['checks']), r
 assert r['source'] == os.environ['GITHUB_SHA'] and r['physical_device_tested'] is False, r
 assert r['scratch_audio_implemented'] is False
-print('29 native performance/import/video checks PASS; Simulator only')
+print('32 native performance/import/video checks PASS; Simulator only')
 PY
 for SCENARIO in completed missing; do
   rm -f "$DATA_DIR/Documents/intro-result.json"

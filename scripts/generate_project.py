@@ -5,7 +5,7 @@ root = Path(__file__).resolve().parents[1]
 project = root / 'ios/LENOX.xcodeproj'
 project.mkdir(parents=True, exist_ok=True)
 ids = {name: f'{i:024X}' for i, name in enumerate(['project','root','sources','products','target','product','sourcephase','frameworkphase','resourcephase','projconfigs','targetconfigs','projdebug','projrelease','targetdebug','targetrelease'], 1)}
-files = ['LenoxApp.swift', 'AudioModel.swift', 'MixPolicy.swift', 'PlaylistStore.swift', 'PlaylistViews.swift', 'PerformancePolicy.swift', 'MixerScreen.swift', 'LaunchExperience.swift']
+files = ['LenoxApp.swift', 'AudioModel.swift', 'MixPolicy.swift', 'PlaylistStore.swift', 'PlaylistViews.swift', 'PerformancePolicy.swift', 'MixerScreen.swift', 'LaunchExperience.swift', 'AudioDocumentPicker.swift']
 entries = []
 for i, filename in enumerate(files, 100):
     ref, build = f'{i:024X}', f'{i+100:024X}'
@@ -30,7 +30,7 @@ entries += [
     f'{f("project")} = {{isa = PBXProject; attributes = {{BuildIndependentTargetsInParallel = YES; LastUpgradeCheck = 1600; }}; buildConfigurationList = {f("projconfigs")}; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en,Base); mainGroup = {f("root")}; productRefGroup = {f("products")}; projectDirPath = ""; projectRoot = ""; targets = ({f("target")},000000000000000000000258); }};',
 ]
 common = 'CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 16.0; SDKROOT = iphoneos; SWIFT_VERSION = 5.0; ENABLE_USER_SCRIPT_SANDBOXING = YES;'
-target = 'CODE_SIGNING_ALLOWED = NO; CODE_SIGNING_REQUIRED = NO; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = LENOX/Info.plist; PRODUCT_BUNDLE_IDENTIFIER = app.lenox.ios.test; PRODUCT_NAME = "$(TARGET_NAME)"; CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 0.1.0; TARGETED_DEVICE_FAMILY = "1,2"; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SUPPORTS_MACCATALYST = NO; LENOX_SOURCE_SHA = local-unrecorded;'
+target = 'CODE_SIGNING_ALLOWED = NO; CODE_SIGNING_REQUIRED = NO; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = LENOX/Info.plist; PRODUCT_BUNDLE_IDENTIFIER = app.lenox.ios.test; PRODUCT_NAME = "$(TARGET_NAME)"; CURRENT_PROJECT_VERSION = 2; MARKETING_VERSION = 0.1.1; TARGETED_DEVICE_FAMILY = "1,2"; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SUPPORTS_MACCATALYST = NO; LENOX_SOURCE_SHA = local-unrecorded;'
 for level in ['proj', 'target']:
     for config in ['Debug', 'Release']:
         key = level + config.lower()

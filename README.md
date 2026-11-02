@@ -1,5 +1,7 @@
 # LENOX iOS — native studio candidate
 
+**Files import regression reported on the first test IPA:** songs can be selected, but Open cannot finish. The 0.1.1/build 2 correction replaces the picker, checks actual audio before saving, declares open-in-place support and adds real Files UI tests. [Fix handover](docs/IOS_FILES_PICKER_FIX_20261102.md). Its native build is pending; the 0.1.0 results below do not prove this phone issue fixed.
+
 **Active branch:** `feature/ios-performance-studio-20261102`, [draft PR #5](https://github.com/gilfillanjamie2000-del/Lenox-ios/pull/5), stacked on playlist PR #4. Mike develops iOS; Jamie retains product/integration authority.
 
 This candidate adds original home artwork, the approved native boot video, searchable playlists with dedicated details, a graphite/lime native mixer and playback-linked spinning vinyl with bounded jog seeking. It also fixes the Files picker inactivity handoff and adds atomic multi-song import within the existing 20-track limit. Genuine PCM scratching, BPM/waveforms, EQ and SYNC remain unimplemented.
