@@ -90,10 +90,11 @@ struct LaunchExperience: View {
     var body: some View {
         GeometryReader { window in
           ZStack {
-            // The audio/library owner lives above the launch presentation.
-            StudioView().opacity(intro.finished ? 1 : 0)
-                .allowsHitTesting(intro.finished).accessibilityHidden(!intro.finished)
-            if !intro.finished {
+            // Keep live controls out of the accessibility tree during the intro.
+            // The audio/library owner remains above both presentations.
+            if intro.finished {
+                StudioView()
+            } else {
                 ZStack {
                     Color.black.ignoresSafeArea()
                     if let player = intro.player { IntroSurface(player: player).ignoresSafeArea().accessibilityHidden(true) }
