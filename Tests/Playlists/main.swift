@@ -80,8 +80,18 @@ let changed = PlaylistStore(file:moved); moved.bytes = Data("other-process".utf8
 rejects("external edit blocks overwrite") { try changed.create(name:"New",tracks:[],revision:0) }
 check("external edit retained",changed.blocked && moved.bytes == Data("other-process".utf8))
 let bounded = PlaylistStore(file:MemoryFile())
-for _ in 0..<20 { try bounded.saveTrack(track(),revision:bounded.state.revision) }
-rejects("track limit") { try bounded.saveTrack(track(),revision:bounded.state.revision) }
+try bounded.saveTracks((0..<500).map { _ in track() }, revision: 0)
+try bounded.saveTrack(track(),revision:bounded.state.revision)
+check("single and batch inserts exceed old song cap", bounded.state.tracks.count == 501)
+let largeID = try bounded.create(name: "Large set", tracks: bounded.state.tracks.map(\.id), revision: bounded.state.revision)
+let largeBackup = try bounded.export(id: largeID)
+let largeDecoded = try PlaylistPolicy.decodeTransfer(largeBackup)
+check("large playlist export exceeds old song cap", largeDecoded.tracks.count == 501)
+let largeImportFile = MemoryFile(), largeImport = PlaylistStore(file: largeImportFile)
+try largeImport.importBackup(largeBackup, revision: 0)
+check("large playlist backup restores every entry", largeImport.state.tracks.count == 501 && largeImport.state.playlists[0].trackIDs.count == 501)
+check("large library reload has no count cap", PlaylistStore(file: largeImportFile).state == largeImport.state)
+try bounded.delete(id: largeID, revision: bounded.state.revision)
 for n in 0..<100 { try bounded.create(name:"Set \(n)",tracks:[],revision:bounded.state.revision) }
 rejects("playlist limit") { try bounded.create(name:"Extra",tracks:[],revision:bounded.state.revision) }
 // Actual disk roundtrip, not a mocked save.

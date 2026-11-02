@@ -161,20 +161,21 @@ struct DeckLoadRequest {
                 try persistSelected(track, replacing: id, revision: pickerRevision)
                 message = "Relinked \(track.title). Original audio is unchanged."
             } else {
-                guard urls.count <= PlaylistPolicy.maxTracks - library.tracks.count else { throw PlaylistFailure.limit }
-                let selected = try urls.map { try SelectedTrack(url: $0) }
                 // The Files picker accepts generic provider-labelled items. Decode
-                // every candidate before committing any references; never play it.
-                try selected.forEach { try validateAudio($0) }
-                let saved = try selected.map { track in
+                // and bookmark one candidate at a time, releasing its temporary
+                // scope before the next. Only saved metadata is retained until
+                // the complete batch can commit; no arbitrary song-count cap.
+                let saved = try urls.map { url -> SavedTrack in
+                    let track = try SelectedTrack(url: url)
+                    try validateAudio(track)
                     let bookmark = try coordinatedRead(track.url) { url in
                         try url.bookmarkData(options: .minimalBookmark, includingResourceValuesForKeys: nil, relativeTo: nil)
                     }
                     return SavedTrack(id: track.id, title: track.title, byteCount: track.byteCount, bookmark: bookmark)
                 }
                 try libraryStore.saveTracks(saved, revision: pickerRevision)
-                tracks.append(contentsOf: selected); syncLibrary()
-                message = "Imported \(selected.count) song\(selected.count == 1 ? "" : "s"). Load Deck A or B to play. Original files are unchanged."
+                syncLibrary()
+                message = "Imported \(saved.count) song\(saved.count == 1 ? "" : "s"). Load Deck A or B to play. Original files are unchanged."
             }
         } catch {
             syncLibrary()

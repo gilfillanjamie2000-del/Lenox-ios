@@ -33,7 +33,7 @@ enum PlaylistFailure: LocalizedError {
         case .invalid: return "Invalid or unsupported playlist data. Nothing was replaced."
         case .collision: return "That playlist name already exists. Open it to edit; it was not overwritten."
         case .stale: return "The saved library changed. Reopen the editor before saving."
-        case .limit: return "This test version supports 20 saved tracks and 100 playlists."
+        case .limit: return "The playlist-count or metadata-size limit was reached. The library has no fixed song-count cap."
         case .locked: return "Saved library cannot be read safely. Writes are blocked; the existing file is preserved."
         case .missing: return "Saved entry not found. Nothing was changed."
         case .referenced: return "Remove this track from its playlists before forgetting it."
@@ -42,7 +42,6 @@ enum PlaylistFailure: LocalizedError {
 }
 enum PlaylistPolicy {
     static let maxBytes = 4 * 1024 * 1024
-    static let maxTracks = 20
     static let maxPlaylists = 100
     static let maxAudioBytes = 64 * 1024 * 1024
     static func key(_ name: String) -> String { name.precomposedStringWithCompatibilityMapping.lowercased() }
@@ -52,7 +51,7 @@ enum PlaylistPolicy {
     }
     static func validate(_ state: LibraryState) throws {
         guard state.format == "lenox-ios-library", state.version == 1,
-              state.tracks.count <= maxTracks, state.playlists.count <= maxPlaylists else { throw PlaylistFailure.invalid }
+              state.playlists.count <= maxPlaylists else { throw PlaylistFailure.invalid }
         let ids = Set(state.tracks.map(\.id))
         guard ids.count == state.tracks.count, Set(state.playlists.map(\.id)).count == state.playlists.count else { throw PlaylistFailure.invalid }
         var names = Set<String>()
@@ -75,7 +74,7 @@ enum PlaylistPolicy {
         guard !data.isEmpty, data.count <= maxBytes,
               let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               Set(object.keys) == Set(["format", "version", "name", "tracks"]),
-              let rows = object["tracks"] as? [[String: Any]], rows.count <= maxTracks,
+              let rows = object["tracks"] as? [[String: Any]],
               rows.allSatisfy({ Set($0.keys) == Set(["title", "byteCount"]) }) else { throw PlaylistFailure.invalid }
         let value = try JSONDecoder().decode(PlaylistTransfer.self, from: data)
         guard value.format == "lenox-playlist", value.version == 1, validText(value.name, max: 80),
@@ -142,7 +141,6 @@ final class PlaylistStore {
                 guard track.id == id, let i = s.tracks.firstIndex(where: { $0.id == id }) else { throw PlaylistFailure.missing }
                 s.tracks[i] = track
             } else {
-                guard s.tracks.count < PlaylistPolicy.maxTracks else { throw PlaylistFailure.limit }
                 guard !s.tracks.contains(where: { $0.id == track.id }) else { throw PlaylistFailure.invalid }
                 s.tracks.append(track)
             }
@@ -153,7 +151,6 @@ final class PlaylistStore {
     func saveTracks(_ tracks: [SavedTrack], revision: UInt64) throws {
         try transact(revision) { s in
             guard !tracks.isEmpty else { throw PlaylistFailure.invalid }
-            guard tracks.count <= PlaylistPolicy.maxTracks - s.tracks.count else { throw PlaylistFailure.limit }
             s.tracks.append(contentsOf: tracks)
         }
     }
@@ -196,8 +193,7 @@ final class PlaylistStore {
     @discardableResult func importBackup(_ data: Data, revision: UInt64) throws -> UUID {
         let transfer = try PlaylistPolicy.decodeTransfer(data), id = UUID()
         try transact(revision) { s in
-            guard s.tracks.count + transfer.tracks.count <= PlaylistPolicy.maxTracks,
-                  s.playlists.count < PlaylistPolicy.maxPlaylists else { throw PlaylistFailure.limit }
+            guard s.playlists.count < PlaylistPolicy.maxPlaylists else { throw PlaylistFailure.limit }
             guard !s.playlists.contains(where: { PlaylistPolicy.key($0.name) == PlaylistPolicy.key(transfer.name) }) else { throw PlaylistFailure.collision }
             // Imports NEVER inherit a bookmark or auto-match existing file access.
             let tracks = transfer.tracks.map { SavedTrack(id: UUID(), title: $0.title, byteCount: $0.byteCount, bookmark: nil) }

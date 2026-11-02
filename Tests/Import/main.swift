@@ -19,13 +19,13 @@ rejects("stale batch rejected") { try store.saveTracks([track()], revision: 0) }
 rejects("empty batch rejected") { try store.saveTracks([], revision: 1) }
 rejects("duplicate identities rejected") { try store.saveTracks([a], revision: 1) }
 rejects("bad member rejects entire batch") { try store.saveTracks([track(), track("")], revision: 1) }
-rejects("capacity checked before commit") { try store.saveTracks((0..<19).map { _ in track() }, revision: 1) }
+rejects("invalid byte count rejects whole batch") { try store.saveTracks([track(), SavedTrack(id: UUID(), title: "Invalid", byteCount: -1, bookmark: nil)], revision: 1) }
 check("all rejections preserve state and disk", store.state == before && f.bytes == bytes && f.writes == 1)
 f.fail = true
 rejects("write failure rejects entire batch") { try store.saveTracks([track(),track()], revision: 1) }
 check("write failure does not publish memory", store.state == before && f.bytes == bytes)
-try s.saveTracks((0..<20).map { _ in track() }, revision: 0)
-check("unchanged 20 track limit", s.state.tracks.count == 20)
+try s.saveTracks((0..<2000).map { _ in track() }, revision: 0)
+check("two thousand track batch has no artificial count cap", s.state.tracks.count == 2000)
 var gate = PlaybackGate(); gate.setActive(true); let token = gate.generation
 gate.setActive(false, invalidatePending: false)
 check("inactive suspends permission", !gate.accepts(token))

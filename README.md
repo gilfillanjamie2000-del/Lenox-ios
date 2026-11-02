@@ -1,6 +1,6 @@
 # LENOX iOS — native studio candidate
 
-**Files import regression reported on the first test IPA:** songs can be selected, but Open cannot finish. The 0.1.1/build 2 correction replaces the picker, checks actual audio before saving, declares open-in-place support and adds real Files UI tests. [Fix handover](docs/IOS_FILES_PICKER_FIX_20261102.md). Its native build is pending; the 0.1.0 results below do not prove this phone issue fixed.
+**Files import regression reported on the first test IPA:** songs can be selected, but Open cannot finish. The 0.1.1/build 2 correction replaces the picker, checks actual audio before saving, declares open-in-place support and adds real Files UI tests. Mike also requested removal of the 20-song cap: there is now no fixed song-count limit, with the existing file/metadata safeguards retained. [Fix handover](docs/IOS_FILES_PICKER_FIX_20261102.md). Its native build is pending; the 0.1.0 results below do not prove this phone issue fixed.
 
 **Active branch:** `feature/ios-performance-studio-20261102`, [draft PR #5](https://github.com/gilfillanjamie2000-del/Lenox-ios/pull/5), stacked on playlist PR #4. Mike develops iOS; Jamie retains product/integration authority.
 

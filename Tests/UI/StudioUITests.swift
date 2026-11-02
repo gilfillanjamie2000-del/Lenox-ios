@@ -42,12 +42,15 @@ final class StudioUITests: XCTestCase {
         expectation(for: imported, evaluatedWith: result)
         waitForExpectations(timeout: 15)
         XCTAssertTrue(app.staticTexts["Picker-one"].exists)
+        app.swipeUp()
         XCTAssertTrue(app.staticTexts["Picker-two"].exists)
         capture("files-multi-imported")
+        app.swipeDown()
         app.buttons["selectAudio"].tap()
         XCTAssertTrue(app.buttons["Cancel"].waitForExistence(timeout: 5))
         app.buttons["Cancel"].tap()
         XCTAssertTrue(app.staticTexts["Picker-one"].waitForExistence(timeout: 5))
+        app.swipeUp()
         XCTAssertTrue(app.staticTexts["Picker-two"].exists)
     }
     func testFilesOpenImportsOneActualSelection() {
