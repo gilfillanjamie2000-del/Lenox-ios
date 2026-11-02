@@ -15,8 +15,10 @@ final class StudioUITests: XCTestCase {
     }
     func testOriginalHomeAndMoreRoutes() {
         launch()
-        XCTAssertTrue(app.images["home-approved-art"].exists)
+        XCTAssertTrue(app.buttons["lenoxMix"].exists)
         capture("home-original-art")
+        app.buttons["lenoxMix"].tap()
+        XCTAssertTrue(app.staticTexts["✧ MIX ASSISTANT"].exists)
         app.buttons["dock-more"].tap()
         app.buttons["more-assistant"].tap()
         XCTAssertTrue(app.staticTexts["✧ MIX ASSISTANT"].exists)

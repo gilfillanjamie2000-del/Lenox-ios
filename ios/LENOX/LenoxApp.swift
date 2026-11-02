@@ -127,19 +127,17 @@ struct StudioView: View {
         VStack(spacing: 16) {
             StudioPanel {
                 if let hero = ApprovedAssets.hero {
-                    Image(uiImage: hero).resizable().scaledToFit()
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                        .accessibilityLabel("Original LENOX neon DJ artwork").accessibilityIdentifier("home-approved-art")
+                    Button { route = .assistant } label: {
+                        Image(uiImage: hero).resizable().scaledToFit()
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }.buttonStyle(.plain)
+                        .accessibilityLabel("LENOX Tap to Mix. Open Mix Assistant")
+                        .accessibilityIdentifier("lenoxMix")
                 } else {
                     Text("LENOX").font(.largeTitle.weight(.black)).tracking(7)
                     Text("Original Android hero artwork is unavailable.").font(.caption)
+                    Button("TAP TO MIX") { route = .assistant }.accessibilityIdentifier("lenoxMix")
                 }
-                Button { route = .assistant } label: {
-                    VStack(spacing: 6) {
-                        Text("TAP TO MIX").font(.title2.bold())
-                        Text("Open Mix Assistant").font(.caption)
-                    }.padding(.vertical, 12)
-                }.accessibilityIdentifier("lenoxMix")
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: textSize.isAccessibilitySize ? 1 : 2), spacing: 10) {
                     shortcut("MUSIC LIBRARY", symbol: "music.note.list", target: .library, identifier: "lenoxLibrary")
                     shortcut("PLAYLISTS", symbol: "list.bullet", target: .playlists, identifier: "lenoxPlaylist")

@@ -104,28 +104,7 @@ struct PlaylistDetails: View {
                         Label("Save backup to Files", systemImage: "square.and.arrow.up")
                     }.accessibilityIdentifier("playlist-export")
                 }
-                Section("Play order") {
-                    if playlist.trackIDs.isEmpty { Text("This playlist is empty. Choose Edit to add saved tracks.").foregroundStyle(.secondary) }
-                    ForEach(Array(playlist.trackIDs.enumerated()), id: \.element) { offset, id in
-                        if let track = audio.library.tracks.first(where: { $0.id == id }) {
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack(alignment: .top) {
-                                    Text(String(format: "%02d", offset + 1)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-                                    Text(track.title).font(.headline)
-                                }
-                                Label(audio.referenceStatus(track).label, systemImage: audio.referenceStatus(track).symbol)
-                                    .font(.caption).foregroundStyle(track.bookmark == nil ? .orange : .secondary)
-                                HStack(spacing: 14) {
-                                    DeckLoadButton(track: track, deck: 0, didLoad: openMixer)
-                                    DeckLoadButton(track: track, deck: 1, didLoad: openMixer)
-                                }.buttonStyle(.bordered)
-                                if audio.referenceStatus(track) == .relink || audio.referenceStatus(track) == .unavailable {
-                                    Button("Relink in Library", action: openLibrary).font(.subheadline)
-                                }
-                            }.padding(.vertical, 8)
-                        }
-                    }
-                } footer: { Text("Loading a deck does not start playback. Original audio is never changed.") }
+                trackSection(playlist)
                 Section {
                     Button("Delete playlist", role: .destructive) { deleting = snapshot(playlist) }
                         .disabled(audio.libraryBlocked).accessibilityIdentifier("playlist-delete")
@@ -154,6 +133,46 @@ struct PlaylistDetails: View {
     }
     private func snapshot(_ p: SavedPlaylist) -> PlaylistDraft {
         PlaylistDraft(playlistID: p.id, revision: audio.library.revision, name: p.name, tracks: p.trackIDs)
+    }
+    private func trackSection(_ playlist: SavedPlaylist) -> some View {
+        Section {
+            if playlist.trackIDs.isEmpty {
+                Text("This playlist is empty. Choose Edit to add saved tracks.").foregroundStyle(.secondary)
+            }
+            ForEach(playlist.trackIDs, id: \.self) { id in
+                if let track = audio.library.tracks.first(where: { $0.id == id }) {
+                    PlaylistTrackRow(track: track, number: (playlist.trackIDs.firstIndex(of: id) ?? 0) + 1,
+                                     openMixer: openMixer, openLibrary: openLibrary)
+                }
+            }
+        } header: { Text("Play order") }
+          footer: { Text("Loading a deck does not start playback. Original audio is never changed.") }
+    }
+}
+
+private struct PlaylistTrackRow: View {
+    @EnvironmentObject private var audio: AudioModel
+    let track: SavedTrack
+    let number: Int
+    let openMixer: () -> Void
+    let openLibrary: () -> Void
+    private var status: ReferenceStatus { audio.referenceStatus(track) }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top) {
+                Text(String(format: "%02d", number)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                Text(track.title).font(.headline)
+            }
+            Label(status.label, systemImage: status.symbol).font(.caption)
+                .foregroundStyle(track.bookmark == nil ? Color.orange : Color.secondary)
+            HStack(spacing: 14) {
+                DeckLoadButton(track: track, deck: 0, didLoad: openMixer)
+                DeckLoadButton(track: track, deck: 1, didLoad: openMixer)
+            }.buttonStyle(.bordered)
+            if status == .relink || status == .unavailable {
+                Button("Relink in Library", action: openLibrary).font(.subheadline)
+            }
+        }.padding(.vertical, 8)
     }
 }
 
