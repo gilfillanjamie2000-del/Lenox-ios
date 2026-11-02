@@ -43,7 +43,6 @@ enum PlaylistFailure: LocalizedError {
 enum PlaylistPolicy {
     static let maxBytes = 4 * 1024 * 1024
     static let maxPlaylists = 100
-    static let maxAudioBytes = 64 * 1024 * 1024
     static func key(_ name: String) -> String { name.precomposedStringWithCompatibilityMapping.lowercased() }
     static func validText(_ text: String, max: Int) -> Bool {
         !text.isEmpty && text.utf16.count <= max && text == text.trimmingCharacters(in: .whitespacesAndNewlines) &&
@@ -56,7 +55,7 @@ enum PlaylistPolicy {
         guard ids.count == state.tracks.count, Set(state.playlists.map(\.id)).count == state.playlists.count else { throw PlaylistFailure.invalid }
         var names = Set<String>()
         for t in state.tracks {
-            guard validText(t.title, max: 512), (1...maxAudioBytes).contains(t.byteCount),
+            guard validText(t.title, max: 512), t.byteCount > 0,
                   t.bookmark == nil || (1...131072).contains(t.bookmark!.count) else { throw PlaylistFailure.invalid }
         }
         for p in state.playlists {
@@ -78,7 +77,7 @@ enum PlaylistPolicy {
               rows.allSatisfy({ Set($0.keys) == Set(["title", "byteCount"]) }) else { throw PlaylistFailure.invalid }
         let value = try JSONDecoder().decode(PlaylistTransfer.self, from: data)
         guard value.format == "lenox-playlist", value.version == 1, validText(value.name, max: 80),
-              value.tracks.allSatisfy({ validText($0.title, max: 512) && (1...maxAudioBytes).contains($0.byteCount) }) else { throw PlaylistFailure.invalid }
+              value.tracks.allSatisfy({ validText($0.title, max: 512) && $0.byteCount > 0 }) else { throw PlaylistFailure.invalid }
         return value
     }
 }

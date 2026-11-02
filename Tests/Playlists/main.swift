@@ -91,6 +91,12 @@ let largeImportFile = MemoryFile(), largeImport = PlaylistStore(file: largeImpor
 try largeImport.importBackup(largeBackup, revision: 0)
 check("large playlist backup restores every entry", largeImport.state.tracks.count == 501 && largeImport.state.playlists[0].trackIDs.count == 501)
 check("large library reload has no count cap", PlaylistStore(file: largeImportFile).state == largeImport.state)
+let longRecording = SavedTrack(id: UUID(), title: "Long recording", byteCount: 8 * 1024 * 1024 * 1024, bookmark: nil)
+try largeImport.saveTrack(longRecording, revision: largeImport.state.revision)
+check("8 GiB audio reference has no app size cap", largeImport.state.tracks.last?.byteCount == longRecording.byteCount)
+let longID = try largeImport.create(name: "Long recording", tracks: [longRecording.id], revision: largeImport.state.revision)
+let longTransfer = try PlaylistPolicy.decodeTransfer(largeImport.export(id: longID))
+check("large audio byte count survives backup export", longTransfer.tracks[0].byteCount == longRecording.byteCount)
 try bounded.delete(id: largeID, revision: bounded.state.revision)
 for n in 0..<100 { try bounded.create(name:"Set \(n)",tracks:[],revision:bounded.state.revision) }
 rejects("playlist limit") { try bounded.create(name:"Extra",tracks:[],revision:bounded.state.revision) }

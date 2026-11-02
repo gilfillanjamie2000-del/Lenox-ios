@@ -17,7 +17,7 @@ final class SelectedTrack: Identifiable {
         do {
             let info = try url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
             guard info.isRegularFile == true, let size = info.fileSize,
-                  size > 0, size <= 64 * 1024 * 1024 else { throw AudioFailure.size }
+                  size > 0 else { throw AudioFailure.size }
             self.url = url
             self.title = url.deletingPathExtension().lastPathComponent
             self.byteCount = size
@@ -36,7 +36,7 @@ enum AudioFailure: LocalizedError {
         switch self {
         case .invalidFile: return "Select a local audio file. Network URLs are not supported."
         case .permission: return "File access is unavailable. Select the file again in Files."
-        case .size: return "Select a downloaded, non-empty audio file no larger than 64 MiB."
+        case .size: return "Select a downloaded, non-empty regular audio file."
         case .prepare: return "This audio file could not be decoded. Try WAV, MP3, AAC or AIFF."
         case .playback: return "Playback could not start on the current audio route."
         case .stale: return "The app state changed. Reopen LENOX and select the file again."
@@ -189,10 +189,13 @@ struct DeckLoadRequest {
     private func validateAudio(_ track: SelectedTrack) throws {
         try coordinatedRead(track.url) { url in
             do {
-                let candidate = try AVAudioPlayer(contentsOf: url)
-                guard candidate.duration.isFinite, candidate.duration > 0, candidate.prepareToPlay() else { throw AudioFailure.prepare }
-                // prepareToPlay validates decoding without starting audio output.
-                candidate.stop()
+                let candidate = try AVAudioFile(forReading: url)
+                guard candidate.length > 0,
+                      let buffer = AVAudioPCMBuffer(pcmFormat: candidate.processingFormat, frameCapacity: 4096) else { throw AudioFailure.prepare }
+                // Decode a bounded opening block, not the entire recording. This
+                // creates no player, starts no output and imposes no file-size cap.
+                try candidate.read(into: buffer, frameCount: AVAudioFrameCount(min(4096, candidate.length)))
+                guard buffer.frameLength > 0 else { throw AudioFailure.prepare }
             } catch { throw AudioFailure.prepare }
         }
     }
@@ -610,6 +613,21 @@ struct DeckLoadRequest {
             _ = beginPicker(); acceptSelection(.success([generic, invalid]))
             record("undecodable batch preserves all saved references", library == validState)
             record("decode validation never starts either deck", decks.allSatisfy { !$0.playing })
+            let longRecording = FileManager.default.temporaryDirectory.appendingPathComponent("Long-recording.wav")
+            let longBytes: UInt32 = 128 * 1024 * 1024
+            var longHeader = Self.tone(550, seconds: 0)
+            func littleEndianBytes(_ value: UInt32) -> [UInt8] { (0..<4).map { UInt8((value >> ($0 * 8)) & 255) } }
+            longHeader.replaceSubrange(4..<8, with: littleEndianBytes(longBytes + 36))
+            longHeader.replaceSubrange(40..<44, with: littleEndianBytes(longBytes))
+            try longHeader.write(to: longRecording, options: .atomic)
+            let sparse = try FileHandle(forWritingTo: longRecording)
+            try sparse.truncate(atOffset: UInt64(longBytes) + 44); try sparse.close()
+            let countBeforeLong = library.tracks.count
+            _ = beginPicker(); acceptSelection(.success([longRecording]))
+            record("128 MiB audio imports without a file-size cap", library.tracks.count == countBeforeLong + 1 && library.tracks.last?.byteCount == Int(longBytes) + 44)
+            let headerRead = try FileHandle(forReadingFrom: longRecording)
+            let afterLongHeader = try headerRead.read(upToCount: 44); try headerRead.close()
+            record("large recording header untouched and no autoplay", afterLongHeader == longHeader && decks.allSatisfy { !$0.playing })
             // Decode an actual frame from the approved offline video, separate from UI timeout fallback.
             if let url = ApprovedAssets.url("lenox-intro.mp4") {
                 let videoChecks = await Task.detached(priority: .userInitiated) { () -> (valid: Bool, decoded: Bool, duration: Double) in

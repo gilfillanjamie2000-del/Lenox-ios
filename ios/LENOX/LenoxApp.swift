@@ -167,7 +167,7 @@ struct StudioView: View {
                 Text("Music Library").font(.headline)
                 Button("Import songs from Files") { if audio.beginPicker() { pickerMultiple = true; picker = true } }.accessibilityIdentifier("selectAudio")
                     .disabled(audio.libraryBlocked)
-                Text("Select one or several songs, then tap Open. No fixed song-count cap; 64 MiB per file. Audio is checked before saving. You can also place songs in Files → On My iPhone → LENOX Test. Original audio stays untouched.").font(.caption)
+                Text("Select one or several songs, then tap Open. No song-count or audio-file-size cap. Audio is checked before saving. You can also place songs in Files → On My iPhone → LENOX Test. Original audio stays untouched.").font(.caption)
                 TextField("Search title", text: $search).textFieldStyle(.roundedBorder).accessibilityIdentifier("librarySearch")
                 Text("Artist, genre, BPM and key are not imported or measured. A saved reference is not proof of current file access.").font(.caption)
                 if audio.libraryBlocked { Text(PlaylistFailure.locked.localizedDescription).foregroundStyle(.red) }
