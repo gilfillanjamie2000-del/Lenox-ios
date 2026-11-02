@@ -1,3 +1,19 @@
+# LENOX iOS — native studio candidate
+
+**Active branch:** `feature/ios-performance-studio-20261102`, stacked on playlist PR #4. Mike develops iOS; Jamie retains product/integration authority.
+
+This candidate adds original home artwork, the approved native boot video, searchable playlists with dedicated details, a graphite/lime native mixer and playback-linked spinning vinyl with bounded jog seeking. It also fixes the Files picker inactivity handoff and adds atomic multi-song import within the existing 20-track limit. Genuine PCM scratching, BPM/waveforms, EQ and SYNC remain unimplemented.
+
+**Native build/testing is pending for this candidate.** Source checks and asset hashes pass locally; these do not establish a compiled IPA, visual acceptance or phone success. The prior contributor iPhone XR report remains historical. Any generated IPA is unsigned and requires an authorised signing/sideloading process.
+
+Read [the complete studio handover](docs/IOS_STUDIO_HANDOVER.md) for assets/publication authority, data contracts, tests, Android handover and recovery. The existing playlist schema, references, corruption protection and regression chain remain. No merge, signing, TestFlight or release is performed.
+
+Build with `bash scripts/ci-studio.sh` on the existing GitHub macOS/Xcode system. The standard macOS 15 Intel pool is used after GitHub could not allocate the macOS 15 ARM runner. Exact source/build receipts and artifact links will be recorded after verification.
+
+---
+
+## Preserved 31 October playlist milestone
+
 # LENOX iOS
 
 **iOS development: Mike (Iammrmikeman). Product direction and integration decisions: Jamie.**

@@ -22,8 +22,8 @@ enum MixPolicy {
 struct PlaybackGate {
     private(set) var active = false
     private(set) var generation: UInt64 = 0
-    mutating func setActive(_ value: Bool) {
-        if !value { generation &+= 1 }
+    mutating func setActive(_ value: Bool, invalidatePending: Bool = true) {
+        if !value && invalidatePending { generation &+= 1 }
         active = value
     }
     mutating func invalidate() { generation &+= 1 }
@@ -32,7 +32,7 @@ struct PlaybackGate {
 
 /// Tested navigation/formatting shared by the native reference-alignment views.
 enum StudioRoute: String, CaseIterable {
-    case home, library, playlists, occasions, assistant, mixer, status
+    case home, library, playlists, occasions, assistant, mixer, status, more
     var title: String {
         switch self {
         case .home: return "LENOX"
@@ -42,6 +42,7 @@ enum StudioRoute: String, CaseIterable {
         case .assistant: return "Mix Assistant"
         case .mixer: return "Two-deck mixer"
         case .status: return "System Status"
+        case .more: return "More"
         }
     }
     static func initial(arguments: [String]) -> StudioRoute {

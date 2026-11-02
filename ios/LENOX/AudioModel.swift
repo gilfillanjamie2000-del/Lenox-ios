@@ -52,6 +52,14 @@ struct DeckState {
     var duration: Double = 0
 }
 
+struct DeckLoadRequest {
+    let trackID: UUID
+    let deck: Int
+    let generation: UInt64
+    let revision: UInt64
+    let deckVersion: UInt64
+}
+
 @MainActor final class AudioModel: ObservableObject {
     @Published private(set) var tracks: [SelectedTrack] = []
     @Published private(set) var decks = [DeckState(), DeckState()]
@@ -65,12 +73,23 @@ struct DeckState {
         if ProcessInfo.processInfo.arguments.contains(where: { $0.hasPrefix("--ci-playlists-") }) {
             root = fm.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("PlaylistTest", isDirectory: true)
         }
+        if ProcessInfo.processInfo.arguments.contains("--ci-ui-fixture") || ProcessInfo.processInfo.arguments.contains("--ci-performance") {
+            root = fm.temporaryDirectory.appendingPathComponent("LENOX-fixture-\(UUID().uuidString)", isDirectory: true)
+        }
         #endif
         return PlaylistStore(file: PlaylistDiskFile(url: root.appendingPathComponent("library-v1.json")))
     }()
+    @Published private(set) var unavailableTracks = Set<UUID>()
+    private var deckVersions: [UInt64] = [0, 0]
     private var relinkID: UUID?
     private var pickerRevision: UInt64 = 0
+    private enum PendingPicker {
+        case audio(Result<[URL], Error>), backup(Result<[URL], Error>)
+    }
+    private var pendingPicker: PendingPicker?
     private var playlistSmokeStarted = false
+    private var performanceStarted = false
+    private var uiFixtureStarted = false
     @Published var crossfade = 0.5 { didSet { updateLevels() } }
     @Published var gains = [0.5, 0.5] { didSet { updateLevels() } }
     @Published var channels = [1.0, 1.0] { didSet { updateLevels() } }
@@ -97,27 +116,65 @@ struct DeckState {
                 }
             }.store(in: &observations)
     }
-    func setActive(_ value: Bool) {
+    func setActive(_ value: Bool, invalidatePending: Bool = true) {
         active = value
-        gate.setActive(value)
+        gate.setActive(value, invalidatePending: invalidatePending)
+        if !value && invalidatePending { pendingPicker = nil; relinkID = nil }
         if !value { pauseAll() }
-        if value { runSmokeIfRequested(); runPlaylistSmokeIfRequested() }
+        if value {
+            if let pending = pendingPicker {
+                pendingPicker = nil
+                switch pending {
+                case .audio(let result): acceptSelection(result)
+                case .backup(let result): acceptPlaylistBackup(result)
+                }
+            }
+            runSmokeIfRequested(); runPlaylistSmokeIfRequested(); runPerformanceIfRequested(); prepareUIFixtureIfRequested()
+        }
     }
     func beginPicker(relinkTo id: UUID? = nil) -> Bool {
         guard active, !libraryBlocked else { message = "Open LENOX with readable saved metadata before choosing files."; return false }
         if let id = id, !library.tracks.contains(where: { $0.id == id }) { return false }
-        pickerToken = gate.generation; pickerRevision = library.revision; relinkID = id
+        pickerToken = gate.generation; pickerRevision = library.revision; relinkID = id; pendingPicker = nil
         return true
     }
     func acceptSelection(_ result: Result<[URL], Error>) {
+        // A system picker may complete during the brief inactive -> active
+        // transition. Hold its result until foreground; actual backgrounding
+        // still invalidates permission and pending selections.
+        if !active && pickerToken == gate.generation {
+            pendingPicker = .audio(result)
+            message = "Finishing import when LENOX returns to the foreground."
+            return
+        }
         guard gate.accepts(pickerToken) else { message = AudioFailure.stale.localizedDescription; return }
         defer { relinkID = nil }
         do {
-            guard let url = try result.get().first else { return }
-            let track = try SelectedTrack(url: url, id: relinkID ?? UUID())
-            try persistSelected(track, replacing: relinkID, revision: pickerRevision)
-            message = "Saved reference to \(track.title). Original audio was not copied or changed. Load a deck explicitly."
-        } catch { syncLibrary(); message = error.localizedDescription }
+            let urls = try result.get()
+            guard !urls.isEmpty else { message = "No songs selected. Existing library is unchanged."; return }
+            guard Set(urls.map { $0.standardizedFileURL }).count == urls.count else { throw PlaylistFailure.invalid }
+            if let id = relinkID {
+                guard urls.count == 1 else { throw PlaylistFailure.invalid }
+                let track = try SelectedTrack(url: urls[0], id: id)
+                try persistSelected(track, replacing: id, revision: pickerRevision)
+                message = "Relinked \(track.title). Original audio is unchanged."
+            } else {
+                guard urls.count <= PlaylistPolicy.maxTracks - library.tracks.count else { throw PlaylistFailure.limit }
+                let selected = try urls.map { try SelectedTrack(url: $0) }
+                let saved = try selected.map { track in
+                    let bookmark = try coordinatedRead(track.url) { url in
+                        try url.bookmarkData(options: .minimalBookmark, includingResourceValuesForKeys: nil, relativeTo: nil)
+                    }
+                    return SavedTrack(id: track.id, title: track.title, byteCount: track.byteCount, bookmark: bookmark)
+                }
+                try libraryStore.saveTracks(saved, revision: pickerRevision)
+                tracks.append(contentsOf: selected); syncLibrary()
+                message = "Imported \(selected.count) song\(selected.count == 1 ? "" : "s"). Load Deck A or B to play. Original files are unchanged."
+            }
+        } catch {
+            syncLibrary()
+            message = "Import was not saved: \(error.localizedDescription) Existing library is unchanged."
+        }
     }
     private func persistSelected(_ track: SelectedTrack, replacing: UUID?, revision: UInt64) throws {
         let bookmark = try coordinatedRead(track.url) { url in
@@ -130,7 +187,7 @@ struct DeckState {
             for i in 0..<2 where decks[i].trackID == id { stop(i) }
             tracks.removeAll { $0.id == id }
         }
-        tracks.append(track); syncLibrary()
+        tracks.append(track); unavailableTracks.remove(track.id); syncLibrary()
     }
     private func syncLibrary() { library = libraryStore.state; libraryBlocked = libraryStore.blocked }
     @discardableResult private func saveAction(_ messageOnSuccess: String, _ action: () throws -> Void) -> Bool {
@@ -150,7 +207,7 @@ struct DeckState {
     }
     func forgetSavedTrack(_ id: UUID) {
         if saveAction("Saved reference removed. Original file is unchanged.", { try libraryStore.forgetTrack(id: id, revision: library.revision) }) {
-            for i in 0..<2 where decks[i].trackID == id { stop(i) }; tracks.removeAll { $0.id == id }
+            for i in 0..<2 where decks[i].trackID == id { stop(i) }; tracks.removeAll { $0.id == id }; unavailableTracks.remove(id)
         }
     }
     @discardableResult func loadSaved(_ id: UUID, into deck: Int, play: Bool = false) -> Bool {
@@ -168,14 +225,42 @@ struct DeckState {
                 guard selected.byteCount == saved.byteCount else { throw AudioFailure.stale }
                 tracks.append(selected)
             }
-            return play ? loadAndPlay(selected, into: deck) : load(selected, into: deck)
-        } catch { message = "File unavailable or changed. Relink in Library; the playlist entry is retained."; return false }
+            let ok = play ? loadAndPlay(selected, into: deck) : load(selected, into: deck)
+            if ok { unavailableTracks.remove(id) } else { unavailableTracks.insert(id) }
+            return ok
+        } catch { unavailableTracks.insert(id); message = "File unavailable or changed. Relink in Library; the playlist entry is retained."; return false }
+    }
+    func referenceStatus(_ track: SavedTrack) -> ReferenceStatus {
+        ReferenceStatus.resolve(bookmark: track.bookmark != nil,
+                                loaded: decks.contains { $0.trackID == track.id },
+                                failed: unavailableTracks.contains(track.id))
+    }
+    func loadRequest(_ trackID: UUID, deck: Int) -> DeckLoadRequest? {
+        guard valid(deck), active, !libraryBlocked else { return nil }
+        return DeckLoadRequest(trackID: trackID, deck: deck, generation: gate.generation,
+                               revision: library.revision, deckVersion: deckVersions[deck])
+    }
+    @discardableResult func performLoad(_ request: DeckLoadRequest) -> Bool {
+        guard valid(request.deck), gate.accepts(request.generation), request.revision == library.revision,
+              request.deckVersion == deckVersions[request.deck] else {
+            message = "The deck or library changed. Choose the track again."; return false
+        }
+        return loadSaved(request.trackID, into: request.deck)
+    }
+    func playbackPosition(_ deck: Int) -> Double {
+        guard valid(deck) else { return 0 }; return players[deck]?.currentTime ?? 0
+    }
+    func jog(_ deck: Int, delta: Double) {
+        guard valid(deck), active, let player = players[deck],
+              let target = PerformancePolicy.jog(position: player.currentTime, delta: delta, duration: player.duration) else { return }
+        seek(deck, target)
     }
     func playlistBackup(_ id: UUID) -> Data? {
         do { return try libraryStore.export(id: id) }
         catch { message = error.localizedDescription; return nil }
     }
     func acceptPlaylistBackup(_ result: Result<[URL], Error>) {
+        if !active && pickerToken == gate.generation { pendingPicker = .backup(result); return }
         guard gate.accepts(pickerToken) else { message = AudioFailure.stale.localizedDescription; return }
         do {
             guard let url = try result.get().first, url.isFileURL else { throw PlaylistFailure.invalid }
@@ -212,6 +297,7 @@ struct DeckState {
             player.enableRate = true
             player.rate = Float(rates[deck])
             players[deck]?.stop()
+            deckVersions[deck] &+= 1
             players[deck] = player
             decks[deck] = DeckState(trackID: track.id, title: track.title, playing: false,
                                    position: 0, duration: player.duration)
@@ -243,6 +329,7 @@ struct DeckState {
     func pause(_ deck: Int) { guard valid(deck) else { return }; players[deck]?.pause(); refresh() }
     func stop(_ deck: Int) {
         guard valid(deck) else { return }
+        deckVersions[deck] &+= 1
         players[deck]?.stop(); players[deck] = nil; decks[deck] = DeckState()
         if players.allSatisfy({ $0?.isPlaying != true }) { deactivateSession() }
     }
@@ -391,8 +478,115 @@ struct DeckState {
         catch { message = "Could not write playlist CI report." }
         #endif
     }
-    private static func tone(_ frequency: Double) -> Data {
-        let rate: UInt32 = 22_050, count = Int(rate) * 3
+    private func prepareUIFixtureIfRequested() {
+        #if targetEnvironment(simulator)
+        guard ProcessInfo.processInfo.arguments.contains("--ci-ui-fixture"), !uiFixtureStarted else { return }
+        uiFixtureStarted = true
+        do {
+            for hz in [440.0, 660.0] {
+                let url = FileManager.default.temporaryDirectory.appendingPathComponent("UI-tone-\(Int(hz)).wav")
+                try Self.tone(hz, seconds: 30).write(to: url, options: .atomic)
+                let track = try SelectedTrack(url: url, synthetic: true)
+                try persistSelected(track, replacing: nil, revision: library.revision)
+            }
+            _ = savePlaylist(id: nil, name: "Night set", tracks: library.tracks.map(\.id), revision: library.revision)
+            gains = [0.1, 0.1]
+        } catch { message = "UI fixture failed: \(error.localizedDescription)" }
+        #endif
+    }
+    private func runPerformanceIfRequested() {
+        #if targetEnvironment(simulator)
+        guard ProcessInfo.processInfo.arguments.contains("--ci-performance"), !performanceStarted else { return }
+        performanceStarted = true
+        Task { await performanceSmoke() }
+        #endif
+    }
+    private func performanceSmoke() async {
+        #if targetEnvironment(simulator)
+        var checks: [[String: Any]] = []
+        func record(_ name: String, _ value: Bool) { checks.append(["name": name, "passed": value]) }
+        do {
+            for hz in [440.0, 660.0] {
+                let url = FileManager.default.temporaryDirectory.appendingPathComponent("Performance-\(Int(hz)).wav")
+                try Self.tone(hz, seconds: 12).write(to: url, options: .atomic)
+                try persistSelected(SelectedTrack(url: url, synthetic: true), replacing: nil, revision: library.revision)
+            }
+            let a = library.tracks[0], b = library.tracks[1]
+            record("saved bookmark is not access proof", referenceStatus(a) == .saved)
+            record("explicit A load", loadSaved(a.id, into: 0))
+            record("explicit B load", loadSaved(b.id, into: 1))
+            record("loaded status", referenceStatus(a) == .loaded)
+            setRate(0, 1.25)
+            record("paused tempo never starts playback", !decks[0].playing && players[0]?.isPlaying == false)
+            seek(0, 1); jog(0, delta: 0.05)
+            record("native forward jog 50ms", abs(playbackPosition(0) - 1.05) < 0.01)
+            jog(0, delta: -0.05)
+            record("native reverse jog 50ms", abs(playbackPosition(0) - 1) < 0.01)
+            let before = playbackPosition(0); jog(0, delta: .infinity)
+            record("invalid jog leaves position", abs(playbackPosition(0) - before) < 0.01)
+            seek(0, 0.01); jog(0, delta: -0.05)
+            record("jog clamps to start", playbackPosition(0) == 0)
+            seek(0, 11.99); jog(0, delta: 0.05)
+            record("jog clamps to duration", abs(playbackPosition(0) - 12) < 0.01)
+            seek(0, 1)
+            let stopped = playbackPosition(0)
+            try await Task.sleep(nanoseconds: 150_000_000)
+            record("paused platter clock is stationary", abs(playbackPosition(0) - stopped) < 0.01)
+            gains = [0.1, 0.1]; play(0); play(1)
+            try await Task.sleep(nanoseconds: 200_000_000); refresh()
+            record("independent decks both advance", decks.allSatisfy { $0.playing && $0.position > 0 })
+            let request = loadRequest(b.id, deck: 0)!
+            record("confirmed replacement succeeds", performLoad(request))
+            record("replacement paused and B uninterrupted", !decks[0].playing && decks[0].trackID == b.id && decks[1].playing)
+            record("stale confirmation rejected", !performLoad(request))
+            let backgroundRequest = loadRequest(a.id, deck: 0)!
+            setActive(false); setActive(true)
+            record("background invalidates confirmation", !performLoad(backgroundRequest))
+            record("foreground never resumes decks", decks.allSatisfy { !$0.playing })
+            let originalData = try Data(contentsOf: tracks[0].url)
+            seek(0, 2); jog(0, delta: 0.1)
+            record("jog never modifies original audio", try Data(contentsOf: tracks[0].url) == originalData)
+            let countBefore = library.tracks.count
+            let importURLs = tracks.prefix(2).map(\.url)
+            record("begin explicit multi import", beginPicker())
+            setActive(false, invalidatePending: false)
+            acceptSelection(.success(importURLs))
+            record("inactive picker waits without writing", library.tracks.count == countBefore)
+            setActive(true)
+            record("foreground commits all selected songs", library.tracks.count == countBefore + 2)
+            record("multi import never autoplays", decks.allSatisfy { !$0.playing })
+            let afterImport = library
+            _ = beginPicker()
+            acceptSelection(.success([importURLs[0], FileManager.default.temporaryDirectory.appendingPathComponent("missing-song.wav")]))
+            record("one unreadable song rejects whole batch", library == afterImport)
+            _ = beginPicker(); setActive(false); setActive(true)
+            acceptSelection(.success(importURLs))
+            record("background invalidated import rejected", library == afterImport)
+            _ = beginPicker(); acceptSelection(.success([]))
+            record("empty selection preserves library", library == afterImport)
+            record("import original bytes unchanged", try Data(contentsOf: importURLs[0]) == originalData)
+            // Decode an actual frame from the approved offline video, separate from UI timeout fallback.
+            if let url = ApprovedAssets.url("lenox-intro.mp4") {
+                let videoChecks = await Task.detached(priority: .userInitiated) { () -> [Bool] in
+                    let asset = AVURLAsset(url: url)
+                    let generator = AVAssetImageGenerator(asset: asset)
+                    let frame = try? generator.copyCGImage(at: CMTime(seconds: 1, preferredTimescale: 600), actualTime: nil)
+                    return [ApprovedAssets.verified(url, hash: ApprovedAssets.introHash, limit: 2_300_000),
+                            frame != nil, abs(CMTimeGetSeconds(asset.duration) - 12) < 0.3]
+                }.value
+                record("bundled intro exact checksum", videoChecks[0])
+                record("native offline H264 frame decode", videoChecks[1])
+                record("approved intro duration", videoChecks[2])
+            } else { record("approved intro missing", false) }
+        } catch { record("performance exception: \(error.localizedDescription)", false) }
+        let report: [String: Any] = ["source": Bundle.main.object(forInfoDictionaryKey: "LENOXSourceCommit") as? String ?? "unknown", "checks": checks, "ok": !checks.isEmpty && checks.allSatisfy { $0["passed"] as? Bool == true }, "physical_device_tested": false, "scratch_audio_implemented": false]
+        let file = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("performance-smoke.json")
+        do { try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys]).write(to: file, options: .atomic) }
+        catch { message = "Could not save performance test report." }
+        #endif
+    }
+    private static func tone(_ frequency: Double, seconds: Int = 3) -> Data {
+        let rate: UInt32 = 22_050, count = Int(rate) * seconds
         var data = Data()
         func text(_ value: String) { data.append(contentsOf: value.utf8) }
         func u16(_ value: UInt16) { data.append(UInt8(value & 255)); data.append(UInt8(value >> 8)) }

@@ -2,7 +2,7 @@ import Foundation
 var checks = 0
 var failures: [String] = []
 func expect(_ name: String, _ condition: Bool) { checks += 1; if !condition { failures.append(name) } }
-expect("unique seven routes", Set(StudioRoute.allCases.map(\.rawValue)).count == 7)
+expect("unique eight routes", Set(StudioRoute.allCases.map(\.rawValue)).count == 8)
 for route in StudioRoute.allCases {
     expect("route round-trip \(route.rawValue)", StudioRoute(rawValue: route.rawValue) == route)
     expect("label \(route.rawValue)", !route.title.isEmpty)

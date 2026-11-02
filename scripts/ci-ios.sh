@@ -88,13 +88,13 @@ r={'source_commit':source,'repository':os.environ.get('GITHUB_REPOSITORY'),
    'recorded_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
    'signing':'UNSIGNED; no provisioning profile', 'installable_on_iphone':False,
    'physical_device_tested':False, 'approved_visual_parity':False,
-   'private_android_source_or_artwork_included':False,
+   'private_android_source_included':False, 'approved_android_artwork_included':True,
    'policy_tests':json.load(open('reports/policy-tests.json')),
    'simulator_tests':json.load(open('reports/simulator-smoke.json')),
    'xcode':pathlib.Path('reports/xcode-version.txt').read_text().strip(),'files':files}
 pathlib.Path('out/build-provenance.json').write_text(json.dumps(r,indent=2)+'\n')
 pathlib.Path('out/SHA256SUMS').write_text(''.join(f"{x['sha256']}  {x['name']}\n" for x in files))
-pathlib.Path('out/READ_ME_FIRST.txt').write_text('LENOX iOS native test host. UNSIGNED IPA: NOT directly installable on iPhone.\nApple signing/provisioning and physical-device acceptance remain required.\nSimulator package is for Xcode Simulator only. Source/fixtures are new iOS work, not private Android assets.\n')
+pathlib.Path('out/READ_ME_FIRST.txt').write_text('LENOX iOS native test host. UNSIGNED IPA: NOT directly installable on iPhone.\nApple signing/provisioning and physical-device acceptance remain required.\nSimulator package is for Xcode Simulator only. Contains two owner-authorised original artwork/video assets; no Android implementation or configuration.\n')
 PY
 cp reports/simulator-smoke.json reports/policy-tests.json reports/simulator-mixer.png README_MEMORY_ZIP_POLICY.md out/
 if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then

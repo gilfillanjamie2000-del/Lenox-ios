@@ -148,6 +148,15 @@ final class PlaylistStore {
             }
         }
     }
+    // One atomic metadata transaction for a Files multi-selection. A bad entry
+    // or failed write leaves every existing playlist/reference unchanged.
+    func saveTracks(_ tracks: [SavedTrack], revision: UInt64) throws {
+        try transact(revision) { s in
+            guard !tracks.isEmpty else { throw PlaylistFailure.invalid }
+            guard tracks.count <= PlaylistPolicy.maxTracks - s.tracks.count else { throw PlaylistFailure.limit }
+            s.tracks.append(contentsOf: tracks)
+        }
+    }
     @discardableResult func create(name: String, tracks: [UUID], revision: UInt64) throws -> UUID {
         let id = UUID()
         try transact(revision) { s in

@@ -1,40 +1,40 @@
-name: LENOX iOS baseline on standard macOS 15 Intel
+name: LENOX iOS native studio
 on:
   push:
     branches: [feature/ios-performance-studio-20261102]
-    paths: ['.github/workflows/ios-studio.yml']
+    paths: ['ios/**', 'Tests/**', 'scripts/**', 'docs/parity/**', '.github/workflows/ios-studio.yml']
 permissions:
   contents: read
 concurrency:
-  group: lenox-ios-studio-${{ github.ref }}
+  group: lenox-ios-studio-candidate-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  baseline:
+  studio:
     if: github.repository == 'gilfillanjamie2000-del/Lenox-ios' && github.event.repository.private == false && github.ref == 'refs/heads/feature/ios-performance-studio-20261102'
+    # Same standard macOS 15/Xcode build system. ARM pool failed to allocate a
+    # runner on 2026-11-02; the explicitly labelled Intel pool is also standard.
     runs-on: macos-15-intel
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
-      - name: Exact unchanged baseline checkout
+      - name: Exact source checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: f57009b840f96103a17265018d0e5cf692670a45
+          ref: ${{ github.sha }}
           persist-credentials: false
-      - name: Reproduce original baseline before candidate promotion
-        run: |
-          test "$(git rev-parse HEAD)" = f57009b840f96103a17265018d0e5cf692670a45
-          GITHUB_SHA=f57009b840f96103a17265018d0e5cf692670a45 bash scripts/ci-playlists.sh
-      - name: Preserve baseline artifact
+      - name: Verify preserved baseline, native studio and UI regressions
+        run: bash scripts/ci-studio.sh
+      - name: Retain unsigned candidate and evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: LENOX-iOS-BASELINE-UNSIGNED-f57009b840f96103a17265018d0e5cf692670a45
+          name: LENOX-iOS-STUDIO-UNSIGNED-${{ github.sha }}
           path: out/
           if-no-files-found: error
           retention-days: 7
-      - name: Preserve diagnostics
+      - name: Retain failure diagnostics
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: LENOX-iOS-baseline-diagnostics
+          name: LENOX-iOS-studio-diagnostics-${{ github.sha }}
           path: reports/
           if-no-files-found: warn
           retention-days: 3
