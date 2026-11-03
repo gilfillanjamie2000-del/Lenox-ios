@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "repository": "gilfillanjamie2000-del/Lenox-ios",
+  "implementation_commit": "f57009b840f96103a17265018d0e5cf692670a45",
+  "base_commit": "5922983fc6059ba798724eb9061b277b44b8ecfc",
+  "android_reference": "54f01bb213a5d30eaba99ea1f16f1d547b1d82ed",
+  "scope": "Local Swift 6.2.1 Linux executable tests, temporary disk fixtures and source checks; not Apple-platform typechecking, independent review or physical-device evidence",
+  "playlist_assertions": {"passed": 60, "failed": 0},
+  "existing_mixer_assertions": {"passed": 41, "failed": 0},
+  "existing_alignment_assertions": {"passed": 43, "failed": 0},
+  "source_checks": "PASS",
+  "swift_parse_only": "PASS",
+  "shell_syntax": "PASS",
+  "deterministic_project_generation": "PASS",
+  "mutation_probes": [
+    {"variant":"baseline","compiled":true,"failed_assertions":0,"exit":0},
+    {"variant":"early_memory_commit","compiled":true,"failed_assertions":1,"exit":1},
+    {"variant":"stale_revision_bypass","compiled":true,"failed_assertions":1,"exit":1},
+    {"variant":"import_grants_capability","compiled":true,"failed_assertions":1,"exit":1},
+    {"variant":"name_collision_bypass","compiled":true,"failed_assertions":1,"exit":1}
+  ],
+  "matched_git_blobs": {
+    "ios/LENOX/PlaylistStore.swift":"c694d445823fd9ed4a9da57b05176ad6fccc05f5",
+    "ios/LENOX/PlaylistViews.swift":"6e93825cfc47a09434be558ac03ee31ca8fb6ce0",
+    "ios/LENOX/AudioModel.swift":"fb0447b489781d052989453bad60663ac26b094b",
+    "ios/LENOX/LenoxApp.swift":"22aad6b5c1f6b5ba5f0941d6cc14de5970c6c976",
+    "scripts/generate_project.py":"d2c3ff0c3aa27d4a640770fd82fd03f8e3f0e4a4",
+    "ios/LENOX.xcodeproj/project.pbxproj":"54504a0c77b06cbaa6b9452a887f329037b9dd6f",
+    "Tests/Playlists/main.swift":"3c7172b71739156c313f1b857fbf70b36e7a2542",
+    "scripts/check_playlists.py":"dc982be3ceb385b370c5861e0dd98948d339c8d0",
+    "scripts/ci-playlists.sh":"204832b5e5b6b4a33b6339daa8b18741ca1f842e",
+    "scripts/test_playlist_mutations.py":"17bb1e7fd146a2c4bf7e8b6cfe48ab97eee931a2",
+    ".github/workflows/ios-playlists.yml":"5a3ec68abd5a176880d2d095da7629e5b928bcd1"
+  },
+  "cloud_run_id": 41221542950,
+  "cloud_result": "Not asserted by this local receipt; inspect the exact run",
+  "real_files_picker_tested": false,
+  "real_iphone_tested": false,
+  "android_backup_compatibility": false,
+  "independent_approval": false,
+  "visual_or_functional_parity": false
+}

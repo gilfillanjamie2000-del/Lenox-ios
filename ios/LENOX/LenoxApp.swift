@@ -35,7 +35,7 @@ private struct StudioButtonStyle: ButtonStyle {
             .opacity(enabled ? (configuration.isPressed ? 0.7 : 1) : 0.5)
     }
 }
-private struct StudioPanel<Content: View>: View {
+struct StudioPanel<Content: View>: View {
     @ViewBuilder let content: Content
     var body: some View {
         VStack(alignment: .leading, spacing: 12) { content }
@@ -51,6 +51,8 @@ struct StudioView: View {
     @State private var route = StudioRoute.initial(arguments: ProcessInfo.processInfo.arguments)
     @State private var picker = false
     @State private var search = ""
+    @State private var relinking: SavedTrack?
+    @State private var forgetting: SavedTrack?
     @AccessibilityFocusState private var headingFocused: Bool
     private let tick = Timer.publish(every: 0.25, on: .main, in: .common).autoconnect()
     var body: some View {
@@ -90,12 +92,7 @@ struct StudioView: View {
         case .home: home
         case .library: library
         case .mixer: mixer
-        case .playlists:
-            StudioPanel {
-                Text("Saved playlists").font(.headline)
-                Text("Android has saved playlist editing and backup. Those operations are not implemented in this iOS candidate; session tracks are not saved playlists.")
-                Button("Open Music Library") { route = .library }
-            }
+        case .playlists: PlaylistScreen(openMixer: { route = .mixer })
         case .occasions:
             StudioPanel {
                 Text("Set the atmosphere").font(.headline)
@@ -140,7 +137,7 @@ struct StudioView: View {
             }
             StudioPanel {
                 Text("YOUR DJ STUDIO").font(.headline).tracking(2).foregroundStyle(StudioStyle.cyan)
-                Text("\(audio.tracks.count) selected session tracks").font(.subheadline)
+                Text("\(audio.library.tracks.count) saved track references").font(.subheadline)
                 Button("Two-deck mixer") { route = .mixer }.accessibilityIdentifier("openMixer")
                 Text("Read-only selected audio. Original files remain untouched. The native file picker and system permission prompts follow iOS.").font(.caption).foregroundStyle(StudioStyle.muted)
             }
@@ -156,30 +153,48 @@ struct StudioView: View {
             StudioPanel {
                 Text("Music Library").font(.headline)
                 Button("Select audio from Files") { if audio.beginPicker() { picker = true } }.accessibilityIdentifier("selectAudio")
-                Text("Read-only selection · maximum 20 tracks, 64 MiB per file · session-only access").font(.caption).foregroundStyle(StudioStyle.muted)
+                    .disabled(audio.libraryBlocked)
+                Text("Read-only audio · up to 20 saved references, 64 MiB per file. References and playlists persist; audio is not copied.").font(.caption)
                 TextField("Search title", text: $search).textFieldStyle(.roundedBorder).accessibilityIdentifier("librarySearch")
-                Text("Artist, genre, BPM and key metadata are not imported or measured in this candidate.").font(.caption).foregroundStyle(StudioStyle.muted)
+                Text("Artist, genre, BPM and key are not imported or measured. A saved reference is not proof of current file access.").font(.caption)
+                if audio.libraryBlocked { Text(PlaylistFailure.locked.localizedDescription).foregroundStyle(.red) }
             }
-            if audio.tracks.isEmpty {
-                StudioPanel { Text("No music selected").font(.headline); Text("Select a downloaded audio file. No demo library is mixed with your music.") }
+            if audio.library.tracks.isEmpty {
+                StudioPanel { Text("No music saved").font(.headline); Text("Select downloaded audio in Files. No demo songs are mixed into your library.") }
             } else {
-                let matching = audio.tracks.filter { StudioRoute.matches(title: $0.title, query: search) }
+                let matching = audio.library.tracks.filter { StudioRoute.matches(title: $0.title, query: search) }
                 if matching.isEmpty { StudioPanel { Text("No matching tracks.") } }
                 ForEach(matching) { track in
                     StudioPanel {
                         Text(track.title).font(.headline)
-                        Text("\(track.byteCount) bytes · BPM/key unknown").font(.caption).foregroundStyle(StudioStyle.muted)
+                        Text("\(track.byteCount) bytes · BPM/key unknown").font(.caption)
+                        Text(track.bookmark == nil ? "Needs relinking — no file access saved" : "Saved reference — access checked at load").font(.caption)
                         HStack {
-                            Button("Load A") { audio.load(track, into: 0); route = .mixer }
-                            Button("Load B") { audio.load(track, into: 1); route = .mixer }
+                            Button("Load A") { if audio.loadSaved(track.id, into: 0) { route = .mixer } }
+                            Button("Load B") { if audio.loadSaved(track.id, into: 1) { route = .mixer } }
+                        }.disabled(track.bookmark == nil || audio.libraryBlocked || !audio.active)
+                        Button("Relink audio") { relinking = track }.disabled(audio.libraryBlocked)
+                        if !audio.library.playlists.contains(where: { $0.trackIDs.contains(track.id) }) {
+                            Button("Forget unused reference", role: .destructive) { forgetting = track }.disabled(audio.libraryBlocked)
                         }
-                        Text("Load does not play. Start playback explicitly in the mixer.").font(.caption2)
+                        Text("Load does not play. A missing file stays in its playlists until explicitly edited.").font(.caption2)
                     }
                 }
-                Button("Clear session library", role: .destructive) { audio.clearLibrary() }
+                Button("Release session file access") { audio.clearLibrary() }
+                Button("Open saved playlists") { route = .playlists }
             }
             operationStatus
         }
+        .alert("Relink saved track?", isPresented: Binding(get: { relinking != nil }, set: { if !$0 { relinking = nil } }), presenting: relinking) { value in
+            Button("Choose replacement audio") {
+                if audio.beginPicker(relinkTo: value.id) { picker = true }; relinking = nil
+            }
+            Button("Cancel", role: .cancel) { relinking = nil }
+        } message: { value in Text("The file you select will replace the saved reference for \(value.title) in every playlist using it. No audio is overwritten or played automatically.") }
+        .alert("Forget unused reference?", isPresented: Binding(get: { forgetting != nil }, set: { if !$0 { forgetting = nil } }), presenting: forgetting) { value in
+            Button("Forget reference", role: .destructive) { audio.forgetSavedTrack(value.id); forgetting = nil }
+            Button("Cancel", role: .cancel) { forgetting = nil }
+        } message: { _ in Text("Only the saved reference is removed. Original audio is kept.") }
     }
     private var mixer: some View {
         VStack(spacing: 16) {
@@ -221,7 +236,7 @@ struct StudioView: View {
                 Text("Build and evidence").font(.headline)
                 Text("Source: " + (Bundle.main.object(forInfoDictionaryKey: "LENOXSourceCommit") as? String ?? "local-unrecorded")).font(.caption.monospaced()).textSelection(.enabled)
                 Text("Unsigned test build. iPhone signing, physical-device testing and independent review remain required.")
-                Text("Saved playlists, metadata recommendations, full studio tools and original artwork are still missing on iOS. See the parity handover before continuing.")
+                Text("Saved playlists and metadata backups are implemented. Metadata recommendations, full studio tools and original artwork are still missing on iOS. See the parity handover before continuing.")
             }
         }
     }
@@ -251,19 +266,19 @@ struct DeckView: View {
     let index: Int
     private var state: DeckState { audio.decks[index] }
     private var name: String { index == 0 ? "DECK A" : "DECK B" }
-    private var selected: SelectedTrack? { audio.tracks.first { $0.id == selectedID } }
+    private var selected: SavedTrack? { audio.library.tracks.first { $0.id == selectedID } }
     var body: some View {
         StudioPanel {
             Text(name + " · NATIVE AUDIO").font(.caption.bold()).foregroundStyle(StudioStyle.cyan)
             Text(state.title).font(.subheadline.weight(.semibold)).lineLimit(2)
             Menu {
-                ForEach(audio.tracks) { track in Button(track.title) { selectedID = track.id } }
+                ForEach(audio.library.tracks) { track in Button(track.title) { selectedID = track.id } }
             } label: {
                 Text(selected?.title ?? "Choose track").font(.caption).lineLimit(2).frame(minHeight: 44)
-            }.disabled(audio.tracks.isEmpty).accessibilityLabel(name + " track")
+            }.disabled(audio.library.tracks.isEmpty).accessibilityLabel(name + " track")
             Button("▶ Load & play") {
                 if let track = selected { audio.loadAndPlay(track, into: index) }
-            }.disabled(selected == nil || !audio.active).accessibilityIdentifier("load-play-\(index)")
+            }.disabled(selected == nil || selected?.bookmark == nil || !audio.active || audio.libraryBlocked).accessibilityIdentifier("load-play-\(index)")
             Button("■ Stop") { audio.stop(index) }.disabled(state.trackID == nil)
             Button("⏸ Pause") { audio.pause(index) }.disabled(!state.playing)
             Button("▶ Resume") { audio.play(index) }.disabled(state.trackID == nil || state.playing || !audio.active)
@@ -278,6 +293,6 @@ struct DeckView: View {
             Slider(value: Binding(get: { audio.rates[index] }, set: { audio.setRate(index, $0) }), in: 0.5...2, step: 0.01).accessibilityLabel(name + " playback tempo percentage")
             Text(state.playing ? "Playing" : state.trackID == nil ? "Idle" : "Ready / paused").font(.caption).foregroundStyle(StudioStyle.muted)
         }
-        .onChange(of: audio.tracks.count) { _ in if selected == nil { selectedID = nil } }
+        .onChange(of: audio.library.revision) { _ in if selected == nil { selectedID = nil } }
     }
 }

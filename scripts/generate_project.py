@@ -5,14 +5,14 @@ root = Path(__file__).resolve().parents[1]
 project = root / 'ios/LENOX.xcodeproj'
 project.mkdir(parents=True, exist_ok=True)
 ids = {name: f'{i:024X}' for i, name in enumerate(['project','root','sources','products','target','product','sourcephase','frameworkphase','resourcephase','projconfigs','targetconfigs','projdebug','projrelease','targetdebug','targetrelease'], 1)}
-files = ['LenoxApp.swift', 'AudioModel.swift', 'MixPolicy.swift']
+files = ['LenoxApp.swift', 'AudioModel.swift', 'MixPolicy.swift', 'PlaylistStore.swift', 'PlaylistViews.swift']
 entries = []
 for i, filename in enumerate(files, 100):
     ref, build = f'{i:024X}', f'{i+100:024X}'
     entries += [f'{ref} = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = {filename}; sourceTree = "<group>"; }};',
                 f'{build} = {{isa = PBXBuildFile; fileRef = {ref}; }};']
-refs = ','.join(f'{i:024X}' for i in range(100, 103))
-builds = ','.join(f'{i:024X}' for i in range(200, 203))
+refs = ','.join(f'{i:024X}' for i in range(100, 100 + len(files)))
+builds = ','.join(f'{i:024X}' for i in range(200, 200 + len(files)))
 f = lambda name: ids[name]
 entries += [
     f'{f("root")} = {{isa = PBXGroup; children = ({f("sources")},{f("products")}); sourceTree = "<group>"; }};',
