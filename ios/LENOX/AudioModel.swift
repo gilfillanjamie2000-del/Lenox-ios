@@ -101,8 +101,8 @@ struct DeckState {
             message = "Selected \(track.title). Original file is read-only; access lasts for this session."
         } catch { message = error.localizedDescription }
     }
-    func load(_ track: SelectedTrack, into deck: Int) {
-        guard valid(deck), active, tracks.contains(where: { $0.id == track.id }) else { return }
+    @discardableResult func load(_ track: SelectedTrack, into deck: Int) -> Bool {
+        guard valid(deck), active, tracks.contains(where: { $0.id == track.id }) else { return false }
         // Construct the candidate before releasing an existing playable deck.
         do {
             let player = try AVAudioPlayer(contentsOf: track.url)
@@ -115,7 +115,14 @@ struct DeckState {
                                    position: 0, duration: player.duration)
             updateLevels()
             message = "Deck \(deck == 0 ? "A" : "B") loaded. Press Play when ready."
-        } catch { message = "Load failed: \(error.localizedDescription)" }
+            return true
+        } catch { message = "Load failed: \(error.localizedDescription)"; return false }
+    }
+    // This combined action is explicit. A failed load must never play an old deck.
+    @discardableResult func loadAndPlay(_ track: SelectedTrack, into deck: Int) -> Bool {
+        guard load(track, into: deck) else { return false }
+        play(deck)
+        return decks[deck].playing
     }
     func play(_ deck: Int) {
         guard valid(deck), active, let player = players[deck],
@@ -195,7 +202,9 @@ struct DeckState {
             }
             record("two synthetic WAV files decoded", decks.allSatisfy { $0.duration > 2.9 })
             record("loading never autoplays", players.allSatisfy { $0?.isPlaying == false })
-            gains = [0.1, 0.1]; play(0); play(1)
+            gains = [0.1, 0.1]
+            record("explicit load-and-play starts selected deck", loadAndPlay(tracks[0], into: 0))
+            play(1)
             try await Task.sleep(nanoseconds: 500_000_000)
             refresh()
             record("both native players advance", decks.allSatisfy { $0.playing && $0.position > 0 })
@@ -214,6 +223,10 @@ struct DeckState {
             record("background play rejected", players[0]?.isPlaying == false)
             setActive(true)
             record("foreground does not autoplay", players.allSatisfy { $0?.isPlaying == false })
+            let unselected = try SelectedTrack(url: tracks[0].url, synthetic: true)
+            let previousID = decks[0].trackID
+            record("unselected load-and-play rejected without playing old deck",
+                   !loadAndPlay(unselected, into: 0) && decks[0].trackID == previousID && players[0]?.isPlaying == false)
             message = "Synthetic simulator checks finished. Physical-device and visual approval remain pending."
         } catch { checks.append(["name": "fixture execution: \(error.localizedDescription)", "passed": false]) }
         let ok = !checks.isEmpty && checks.allSatisfy { $0["passed"] as? Bool == true }

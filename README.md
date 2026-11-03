@@ -2,65 +2,71 @@
 
 **iOS development: Mike (Iammrmikeman). Product direction and integration decisions: Jamie.**
 
-LENOX is one DJ product with separate iOS and Android implementations. This branch contains the **first native iOS audio-test slice**, using Android's local-file and two-deck behaviour as its reference. It is not the finished DJ application and is not an approved visual redesign.
+One LENOX product, native iOS and Android implementations. Work is isolated in [draft PR #3](https://github.com/gilfillanjamie2000-del/Lenox-ios/pull/3), built on [draft PR #2](https://github.com/gilfillanjamie2000-del/Lenox-ios/pull/2). Neither application PR is merged or release-approved. Visual and functional parity with Android are **not achieved**.
 
-> **First cloud build verified — 31 October 2026.** [GitHub macOS run 41211621619](https://github.com/gilfillanjamie2000-del/Lenox-ios/actions/runs/41211621619) succeeded for source **`a7fc11fab969f79e8f96c26dd055b7ae9860232d`**. Device and Simulator builds passed, with 41 portable Swift assertions and 10 generated-audio Simulator checks. The IPA is **UNSIGNED and NOT directly installable on iPhone**. [Full verification receipt](docs/builds/2026-10-31-a7fc11fab969.json).
+## Latest verified progress — 31 October 2026
 
-## Team progress
-
-| Workstream | Verified state | Next gate |
+| Work | Evidence | Remaining gate |
 | --- | --- | --- |
-| Cross-platform governance | Policy branch and PR #1 preserved; [draft PR #2](https://github.com/gilfillanjamie2000-del/Lenox-ios/pull/2) is stacked on it | Independent review; no automatic merge |
-| Native iOS host | SwiftUI Home, Library, Mixer and Status compiled with Xcode 16.4 | Approved final design and physical-device acceptance |
-| Local music | User-selected, read-only, session-scoped Files implementation; 20-track / 64 MiB limits | Real Files picker, permissions, revocation and persistence |
-| Two decks | AVAudioPlayer A/B playback, seek, manual speed and crossfader exercised with generated WAV files in Simulator | Audible hardware, route changes and real OS lifecycle tests |
-| Portable policy | 41 assertions passed locally and in the cloud; four local deliberate mutations detected | Independent technical review |
-| First IPA | ARM64 iOS-device executable; package/source/checksums independently inspected after download | Apple signing/provisioning; not an installable beta yet |
-| Simulator app | Separate Simulator build packaged and platform identity checked | Broader UI tests; not a replacement for phone testing |
-| Final Android parity | Limited behaviour only; no private Android source/artwork published | Approved assets/UI, persistent playlists and shared AI contracts |
-| BPM/key, true SYNC, EQ, waveforms | Not implemented in this iOS slice | Separate scoped implementation and two-way handover |
+| Android reference | `feature/v3-deck-aware-mix-20261031` pinned to `54f01bb213a5d30eaba99ea1f16f1d547b1d82ed`; canonical HTML matches the inspected APK | Owner-design acceptance and paired platform checks |
+| Native navigation and mixer | Navy/purple/cyan interface, main feature destinations, responsive two-deck controls, real title search, explicit Load & play with failed-load protection | Full studio navigation, original artwork and equivalent library/features |
+| GitHub Mac alignment build | [Run 41214780323](https://github.com/gilfillanjamie2000-del/Lenox-ios/actions/runs/41214780323) succeeded on **`cdc101ac7e6b7c9f5826b21e394760798295617f`** | Independent source/security review and physical-device acceptance |
+| Retained test results | 41 portable Swift assertions, 43 alignment assertions and 12 generated-audio Simulator checks passed | Not real Files permission, audible device or comprehensive UI interaction tests |
+| Downloaded build verification | Artifact digest/CRC, all 19 manifest file hashes, IPA integrity, package/source identity and 9 source-file Git blobs checked | No signed iPhone installation or parity approval |
+| Original Android images | Exact hero PNG and corrected splash JPEG extracted and locally verified, without resizing/recompression | Binary files are in the separate asset ZIP; not committed or wired into native views yet |
+| Artwork importer | [Importer](scripts/import_android_artwork.py), [tests](Tests/test_android_artwork.py), [handover](docs/ANDROID_ARTWORK_IMPORT.md); 22 local tests passed and four deliberately broken integrity checks detected | Xcode resource registration, native home/splash implementation and artwork-inclusive build |
+| Persistent library/playlists and intelligence | Missing or limited in iOS; session-only file selection is not Android folder-scan parity | Shared contracts, implementation and two-way tests |
+| iPhone install | **Blocked:** no Apple signing/provisioning configured | Authorised signing and real-iPhone acceptance |
 
-No percentage-complete figure is used. Code, builds, simulator evidence, physical-device evidence and release approval are separate milestones. **This README and receipt were updated after the tested commit; documentation-only commits are not claimed as separately compiled app revisions.**
+The successful cloud run predates the importer/documentation commits. It does **not** contain the original Android artwork, and does not compile or test later branch commits. Importer tests validate extraction, not iOS UI. No new cloud run was started for the importer-only checkpoint.
 
-## Build artifacts and identity
+## Matching unsigned IPA
 
-Open the successful run's artifact **`LENOX-iOS-UNSIGNED-a7fc11fab969f79e8f96c26dd055b7ae9860232d`**. It contains the device IPA, separate Simulator app, exact-source ZIP, checksums, build provenance, policy report, simulator report and captured simulator screenshot. Hosted retention currently expires **7 November 2026 at 14:50 UTC**; preserve the downloaded evidence before then.
+[Cloud verification receipt](docs/builds/2026-10-31-cdc101ac7e6b-cloud.json) records exactly what was checked. Download artifact `LENOX-iOS-ALIGNMENT-UNSIGNED-cdc101ac7e6b7c9f5826b21e394760798295617f` from the successful run. It contains the unsigned device IPA, separately labelled Simulator app, matching source archive, 7 route captures, test results and provenance. GitHub retention currently expires 7 November 2026 at 15:45 UTC.
 
-- IPA: `LENOX-iOS-0.1.0-a7fc11fab969-UNSIGNED.ipa`, **183,932 bytes**.
-- SHA-256: `3fc7a73d689f171a9fb2d79ba6c3898f3422dca8baf6ab0ff91fff2d0729d05a`.
-- Bundle: `app.lenox.ios.test`; version **0.1.0**, build **1**; minimum iOS **16.0**.
-- Toolchain: **Xcode 16.4 (16F6), iPhoneOS SDK 18.5**, standard `macos-15` runner.
-- Downloaded outer ZIP matched GitHub's digest; IPA/source CRC and checksums passed. All 16 newly checked source/workflow blobs matched local bytes. The source snapshot contains 19 tracked files including inherited governance documents.
+- IPA: `LENOX-iOS-0.1.0-cdc101ac7e6b-UNSIGNED.ipa`, 303825 bytes.
+- SHA-256: `b7941a6b75324e962bcb46bed6ad3d2bca427384a8981c238c42d45008f62a5d`.
+- Bundle: `app.lenox.ios.test`, version 0.1.0, minimum iOS 16.0.
+- Toolchain: Xcode 16.4 (16F6); actual ARM64 iOS-device executable.
+- **Unsigned: not directly installable on iPhone.** No provisioning profile or code-signature load command was present.
 
-The device executable is not a renamed Simulator app. It has no code-signature load command or embedded provisioning profile. A successful unsigned build is not TestFlight/App Store readiness or independent reviewer approval.
+Home and mixer captures were visually inspected. The home still has the explicit missing-artwork warning; the mixer scrolls. No matched Android/iPhone screenshot approval is claimed.
 
-## Run and build
+## Use the original assets, not substitute art
 
-Open `ios/LENOX.xcodeproj` in Xcode on macOS. Shared scheme: `LENOX`. No third-party application packages are required.
+Mike requested the real Android assets. The [artwork handover](docs/ANDROID_ARTWORK_IMPORT.md) identifies the exact images and hashes, tested import commands and remaining native integration steps. The original image bytes were preserved. The importer creates `ios/LENOX/AndroidArtwork` from an authorised local reference APK or checkout, and never copies or executes Android HTML.
+
+**The image binaries are supplied in the separately delivered verified asset ZIP, not committed to this branch by this work.** The importer does not edit the Xcode project or SwiftUI views. Staging resources alone must not be labelled visual parity or an artwork-inclusive IPA.
+
+Android is private and this repository is public. The asset request is not blanket permission to publish implementation code, service configuration, music or credentials. Jamie's direction supplied by Mike remains native reproduction of the approved interface, not a separate redesign. Android [design acceptance #28](https://github.com/gilfillanjamie2000-del/lunox-dj-automation/issues/28) remains a gate.
+
+## Build and test
+
+Open `ios/LENOX.xcodeproj` in Xcode on macOS, scheme `LENOX`. There are no third-party application packages.
 
 ```bash
-# Device and Simulator compilation, synthetic runtime checks, unsigned packaging:
-bash scripts/ci-ios.sh
-
-# Portable policy tests without Xcode (Swift on Linux or macOS):
 mkdir -p .build
 swiftc ios/LENOX/MixPolicy.swift Tests/main.swift -o .build/policy-tests
 .build/policy-tests
+swiftc ios/LENOX/MixPolicy.swift Tests/Alignment/main.swift -o .build/alignment-tests
+.build/alignment-tests
 python3 scripts/check_source.py
+python3 scripts/check_alignment.py
+python3 -m unittest discover -s Tests -p 'test_android_artwork.py' -v
 ```
 
-`python3 scripts/generate_project.py` deterministically regenerates the checked-in Xcode project. CI rejects project-generation drift. The Simulator `.app` archive is not an iPhone package. Simulator tests opt in via `--ci-smoke` and use generated tones only; they call lifecycle handlers directly rather than proving real OS background transitions or user permission flows.
+The Python command runs 18 synthetic importer cases and explicitly skips four real-APK integration tests unless `LENOX_TEST_APK` supplies the authorised local reference APK. See the handover for the integration command. Skips are not passes.
 
-## Test behaviour and limitations
+On a reviewed macOS checkout, `bash scripts/ci-alignment.sh` compiles device and Simulator apps, performs 12 synthetic audio checks and captures seven routes. It is not a full UI interaction or physical-device test. Native Files pickers, permission prompts, safe areas and accessibility may require documented platform differences.
 
-Choose a downloaded audio file in **Library**, load Deck A or B, then press **Play** explicitly. Nothing scans the whole device, alters original music, autoplays imported tracks, requests a microphone or sends telemetry. Clear removes references, not originals. The session library does not persist across relaunch.
+The test library is session-only with 20-file / 64 MiB-per-file limits. Tempo is manual 50–200%, not beat SYNC. Initial gain remains 50% on iOS versus Android's 100%; this is recorded rather than silently increased. Persistent playlists, reviewed-metadata AI, occasion filters, full planning tools and waveform capture remain unfinished. Never infer missing metadata or fabricate recognition/track counts.
 
-Default gains are 50%. The centre-full crossfader curve matches the Android reference, but there is no limiter; keep levels low. Manual speed is not beat-aligned SYNC. File resource lookup/player construction is synchronous and needs profiling. Saved playlists, metadata AI, audio-derived analysis, waveform rendering and approved artwork remain outside this slice. The native test harness does not replace the planned shared UI/WKWebView decision under #62.
+## Continuity, credit and prior evidence
 
-## Team continuation and governance
+The [alignment handover](docs/ANDROID_REFERENCE_ALIGNMENT.md), [reference manifest](docs/parity/android-reference.json), [feature register](docs/FEATURE_PARITY.md), [policy v1.0](docs/CROSS_PLATFORM_POLICY_V1.md) and [handover template](docs/FEATURE_HANDOVER_TEMPLATE.md) remain authoritative project records within their scopes. Original ownership and collaboration credit are unchanged.
 
-Active branch: `prototype/ios-first-test-20261031`. It inherits policy source `a0ab643ca4b93985413b4e31351d92476e0152d9` without modifying that branch. Android is unchanged.
+The first test host `a7fc11fab969f79e8f96c26dd055b7ae9860232d` passed [run 41211621619](https://github.com/gilfillanjamie2000-del/Lenox-ios/actions/runs/41211621619), with 41 portable assertions and 10 Simulator checks. Preserve its [receipt](docs/builds/2026-10-31-a7fc11fab969.json), [handover](docs/IOS_FIRST_TEST_HANDOVER.md) and [signing/device checklist](docs/IOS_BUILD_AND_ACCEPTANCE.md) as historical evidence for that exact source.
 
-Start with the [first-test handover](docs/IOS_FIRST_TEST_HANDOVER.md), [build/signing and physical acceptance checklist](docs/IOS_BUILD_AND_ACCEPTANCE.md), [parity register](docs/FEATURE_PARITY.md), [policy](docs/CROSS_PLATFORM_POLICY_V1.md) and [handover template](docs/FEATURE_HANDOVER_TEMPLATE.md). Existing [iOS feasibility #62](https://github.com/gilfillanjamie2000-del/lunox-dj-automation/issues/62), [governance #52](https://github.com/gilfillanjamie2000-del/lunox-dj-automation/issues/52), Linear ownership and contributor credit remain in force. No Linear status or assignment was changed.
+Existing [policy PR #1](https://github.com/gilfillanjamie2000-del/Lenox-ios/pull/1), Android [governance #52](https://github.com/gilfillanjamie2000-del/lunox-dj-automation/issues/52), [iOS feasibility #62](https://github.com/gilfillanjamie2000-del/lunox-dj-automation/issues/62) and Linear task ownership remain in force. Jamie decides unresolved differences and integration. A build or screenshot does not authorise release or establish parity.
 
-The workflow is restricted to this public repository, explicit prototype branch and standard runner, with pinned actions/read-only credentials and bounded retention. No larger paid runner, Apple signing, TestFlight upload or auto-merge is configured. Store authorised signing assets securely, never in this public repo or a chat. Physical iPhone validation, independent source/security review and Jamie's integration decision remain required.
+The existing workflow is restricted to this public repository, the alignment branch and standard `macos-15`, with read-only token scope, pinned actions and bounded retention. No Android application changes, live music/USB operations, paid runner, signing, TestFlight upload, permission changes or automatic merges were performed by this checkpoint.

@@ -13,121 +13,271 @@ import UniformTypeIdentifiers
     }
 }
 
+// Android reference: 54f01bb213a5, app/index.html. Native views, not a WebView.
+// Original private artwork is deliberately NOT replaced with generated imitation.
+private enum StudioStyle {
+    static let ink = Color(red: 11/255, green: 16/255, blue: 32/255)
+    static let panel = Color(red: 36/255, green: 32/255, blue: 68/255)
+    static let outline = Color(red: 104/255, green: 80/255, blue: 167/255)
+    static let cyan = Color(red: 69/255, green: 234/255, blue: 255/255)
+    static let muted = Color(red: 181/255, green: 195/255, blue: 223/255)
+    static let text = Color(red: 237/255, green: 242/255, blue: 255/255)
+    static let background = LinearGradient(colors: [Color(red: 36/255, green: 46/255, blue: 80/255), ink], startPoint: .topLeading, endPoint: .bottomTrailing)
+}
+private struct StudioButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var enabled
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.font(.subheadline.weight(.semibold)).frame(maxWidth: .infinity, minHeight: 44)
+            .padding(.horizontal, 8)
+            .foregroundStyle(enabled ? StudioStyle.text : StudioStyle.muted)
+            .background(LinearGradient(colors: [StudioStyle.panel, StudioStyle.ink], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(StudioStyle.outline, lineWidth: 1))
+            .opacity(enabled ? (configuration.isPressed ? 0.7 : 1) : 0.5)
+    }
+}
+private struct StudioPanel<Content: View>: View {
+    @ViewBuilder let content: Content
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) { content }
+            .frame(maxWidth: .infinity, alignment: .leading).padding(14)
+            .background(LinearGradient(colors: [StudioStyle.panel, StudioStyle.ink], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 18))
+            .overlay(RoundedRectangle(cornerRadius: 18).stroke(StudioStyle.outline, lineWidth: 1))
+    }
+}
+
 struct StudioView: View {
     @EnvironmentObject private var audio: AudioModel
-    @State private var tab = ProcessInfo.processInfo.arguments.contains("--ci-smoke") ? 2 : 0
+    @Environment(\.dynamicTypeSize) private var textSize
+    @State private var route = StudioRoute.initial(arguments: ProcessInfo.processInfo.arguments)
     @State private var picker = false
+    @State private var search = ""
+    @AccessibilityFocusState private var headingFocused: Bool
     private let tick = Timer.publish(every: 0.25, on: .main, in: .common).autoconnect()
     var body: some View {
-        TabView(selection: $tab) {
-            NavigationStack {
-                List {
-                    Section {
-                        Text("LENOX").font(.largeTitle.bold()).foregroundStyle(.cyan)
-                        Text("iOS audio test · 0.1.0").font(.headline)
-                        Text("A native test host following the Android library and two-deck workflow. This is not the approved final interface.")
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                if route != .home { header }
+                ScrollViewReader { scroll in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Color.clear.frame(height: 1).id("screenTop")
+                            screen
+                        }.padding(.horizontal, 16).padding(.bottom, 20)
+                            .frame(maxWidth: 760).frame(maxWidth: .infinity)
                     }
-                    Section("This test build") {
-                        Label("\(audio.tracks.count) selected session tracks", systemImage: "music.note.list")
-                        Button("Open Library") { tab = 1 }
-                        Button("Open two-deck mixer") { tab = 2 }
-                    }
-                    Section("Not implemented yet") {
-                        Text("Saved playlists, AI recommendations, measured BPM/key, beat-aligned SYNC, EQ, waveforms and Android artwork parity.")
-                    }
-                    Section("Safety") { Text("Files are read-only. No microphone, streaming, telemetry or background playback. Keep monitoring volume low.") }
-                }.navigationTitle("LENOX Test")
-            }.tabItem { Label("Home", systemImage: "house") }.tag(0)
-            NavigationStack {
-                List {
-                    Section {
-                        Button("Select audio from Files") { if audio.beginPicker() { picker = true } }
-                            .accessibilityIdentifier("selectAudio")
-                        Text("One file at a time; up to 20 files, 64 MiB each. Selection and access are session-only.").font(.caption)
-                    }
-                    Section("Selected tracks") {
-                        if audio.tracks.isEmpty { Text("No files selected. Nothing is scanned automatically.").foregroundStyle(.secondary) }
-                        ForEach(audio.tracks) { track in
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(track.title).font(.headline)
-                                Text("\(track.byteCount) bytes · BPM/key unknown").font(.caption).foregroundStyle(.secondary)
-                                HStack {
-                                    Button("Load A") { audio.load(track, into: 0); tab = 2 }.buttonStyle(.bordered)
-                                    Button("Load B") { audio.load(track, into: 1); tab = 2 }.buttonStyle(.bordered)
-                                }
-                            }.padding(.vertical, 4)
-                        }
-                    }
-                    Section { Button("Clear session library", role: .destructive) { audio.clearLibrary() }.disabled(audio.tracks.isEmpty) }
-                    Section("Status") { Text(audio.message).font(.caption) }
-                }.navigationTitle("Music Library")
-            }.tabItem { Label("Library", systemImage: "music.note.list") }.tag(1)
-            NavigationStack {
-                ScrollView {
-                    VStack(spacing: 16) {
-                        Text("Native playback test — not beat-synchronised").font(.caption).foregroundStyle(.secondary)
-                        DeckView(index: 0); DeckView(index: 1)
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("CROSSFADER").font(.headline)
-                            Slider(value: $audio.crossfade, in: 0...1).accessibilityLabel("Crossfader")
-                            HStack { Text("A"); Spacer(); Text("B") }
-                            Text("Centre-full curve matches the Android reference. Combined output can clip; no limiter is implemented.").font(.caption).foregroundStyle(.secondary)
-                        }.padding().background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
-                        Button("Pause both decks") { audio.pauseAll() }.buttonStyle(.borderedProminent)
-                        Text(audio.message).font(.caption).frame(maxWidth: .infinity, alignment: .leading)
-                    }.padding()
-                }.navigationTitle("Two Decks")
-            }.tabItem { Label("Mixer", systemImage: "slider.horizontal.3") }.tag(2)
-            NavigationStack {
-                List {
-                    Section("Build identity") {
-                        Text("Unsigned test candidate — not App Store or TestFlight ready")
-                        Text("Source: " + (Bundle.main.object(forInfoDictionaryKey: "LENOXSourceCommit") as? String ?? "local-unrecorded")).font(.caption.monospaced()).textSelection(.enabled)
-                    }
-                    Section("Verification boundaries") {
-                        Text("A successful compile is not a phone test. Simulator evidence uses generated tones, never your music.")
-                        Text("Real iPhone Files permissions, route changes, interruptions, playback quality and visual acceptance remain pending.")
-                    }
-                    Section("Cross-platform work") {
-                        Text("Portable mixer tests and a continuation handover live with this source. Android is unchanged.")
-                        Text("Final design and shared AI contracts require independent review and Jamie's integration decision.")
-                    }
-                }.navigationTitle("Project Status")
-            }.tabItem { Label("Status", systemImage: "checklist") }.tag(3)
+                    .onChange(of: route) { _ in scroll.scrollTo("screenTop", anchor: .top); headingFocused = true }
+                }
+                dock
+            }.frame(width: geometry.size.width, height: geometry.size.height)
+                .background(StudioStyle.background.ignoresSafeArea())
         }
-        .tint(.cyan)
+        .foregroundStyle(StudioStyle.text).tint(StudioStyle.cyan).buttonStyle(StudioButtonStyle())
         .fileImporter(isPresented: $picker, allowedContentTypes: [.audio], allowsMultipleSelection: false, onCompletion: audio.acceptSelection)
         .onReceive(tick) { _ in if audio.active { audio.refresh() } }
+    }
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                Button("‹ Home") { route = .home }.frame(width: 80).accessibilityIdentifier("pageHome")
+                Text(route.title).font(.title3.bold()).accessibilityAddTraits(.isHeader).accessibilityFocused($headingFocused)
+                Spacer(minLength: 0)
+            }
+            Text("LENOX ALPHA · OFFLINE DJ STUDIO").font(.caption2).tracking(1).foregroundStyle(StudioStyle.muted)
+        }.padding(16)
+    }
+    @ViewBuilder private var screen: some View {
+        switch route {
+        case .home: home
+        case .library: library
+        case .mixer: mixer
+        case .playlists:
+            StudioPanel {
+                Text("Saved playlists").font(.headline)
+                Text("Android has saved playlist editing and backup. Those operations are not implemented in this iOS candidate; session tracks are not saved playlists.")
+                Button("Open Music Library") { route = .library }
+            }
+        case .occasions:
+            StudioPanel {
+                Text("Set the atmosphere").font(.headline)
+                Text("Occasion and energy filtering require the reviewed metadata contract. Imported iOS audio currently has no reviewed occasion or energy values. No event suitability is inferred from filenames.")
+                Button("Open Music Library") { route = .library }
+            }
+        case .assistant:
+            StudioPanel {
+                Text("✧ MIX ASSISTANT").font(.headline).foregroundStyle(StudioStyle.cyan)
+                Text("Local BPM/key compatibility from supplied metadata. Unknown values stay unknown.")
+                ForEach(0..<2, id: \.self) { i in
+                    Text("DECK \(i == 0 ? "A" : "B") · \(audio.decks[i].title)").font(.subheadline)
+                }
+                Text("BPM — · Key — · Genre — · Energy —").font(.caption).foregroundStyle(StudioStyle.muted)
+                Text("Recommendations and opposite-deck recommendation loading are not implemented on iOS yet. No match score or audio analysis is fabricated.")
+                Button("Open two-deck mixer") { route = .mixer }
+            }
+        case .status: status
+        }
+    }
+    private var home: some View {
+        VStack(spacing: 16) {
+            StudioPanel {
+                Text("LENOX").font(.largeTitle.weight(.black)).tracking(7)
+                    .foregroundStyle(LinearGradient(colors: [.pink, .purple, StudioStyle.cyan], startPoint: .leading, endPoint: .trailing))
+                    .frame(maxWidth: .infinity).accessibilityAddTraits(.isHeader)
+                Text("AI DJ STUDIO · EARLY ALPHA").font(.caption2).tracking(2).foregroundStyle(StudioStyle.muted).frame(maxWidth: .infinity)
+                Button { route = .assistant } label: {
+                    VStack(spacing: 8) {
+                        Text("TAP TO MIX").font(.title2.bold())
+                        Text("Open Mix Assistant").font(.caption)
+                    }.padding(.vertical, 24)
+                }.accessibilityIdentifier("lenoxMix")
+                Text("Original Android hero and splash artwork are not bundled. Visual parity remains blocked; no substitute artwork is presented as approved.")
+                    .font(.caption).foregroundStyle(StudioStyle.muted)
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: textSize.isAccessibilitySize ? 1 : 2), spacing: 10) {
+                    shortcut("MUSIC LIBRARY", symbol: "music.note.list", target: .library, identifier: "lenoxLibrary")
+                    shortcut("PLAYLISTS", symbol: "list.bullet", target: .playlists, identifier: "lenoxPlaylist")
+                    shortcut("OCCASIONS", symbol: "sparkles", target: .occasions, identifier: "lenoxOccasion")
+                    shortcut("SYSTEM STATUS", symbol: "info.circle", target: .status, identifier: "lenoxStatus")
+                }
+            }
+            StudioPanel {
+                Text("YOUR DJ STUDIO").font(.headline).tracking(2).foregroundStyle(StudioStyle.cyan)
+                Text("\(audio.tracks.count) selected session tracks").font(.subheadline)
+                Button("Two-deck mixer") { route = .mixer }.accessibilityIdentifier("openMixer")
+                Text("Read-only selected audio. Original files remain untouched. The native file picker and system permission prompts follow iOS.").font(.caption).foregroundStyle(StudioStyle.muted)
+            }
+        }.padding(.top, 8)
+    }
+    private func shortcut(_ title: String, symbol: String, target: StudioRoute, identifier: String) -> some View {
+        Button { route = target } label: {
+            Label(title, systemImage: symbol).font(.caption.bold()).frame(minHeight: 60)
+        }.accessibilityIdentifier(identifier)
+    }
+    private var library: some View {
+        VStack(spacing: 16) {
+            StudioPanel {
+                Text("Music Library").font(.headline)
+                Button("Select audio from Files") { if audio.beginPicker() { picker = true } }.accessibilityIdentifier("selectAudio")
+                Text("Read-only selection · maximum 20 tracks, 64 MiB per file · session-only access").font(.caption).foregroundStyle(StudioStyle.muted)
+                TextField("Search title", text: $search).textFieldStyle(.roundedBorder).accessibilityIdentifier("librarySearch")
+                Text("Artist, genre, BPM and key metadata are not imported or measured in this candidate.").font(.caption).foregroundStyle(StudioStyle.muted)
+            }
+            if audio.tracks.isEmpty {
+                StudioPanel { Text("No music selected").font(.headline); Text("Select a downloaded audio file. No demo library is mixed with your music.") }
+            } else {
+                let matching = audio.tracks.filter { StudioRoute.matches(title: $0.title, query: search) }
+                if matching.isEmpty { StudioPanel { Text("No matching tracks.") } }
+                ForEach(matching) { track in
+                    StudioPanel {
+                        Text(track.title).font(.headline)
+                        Text("\(track.byteCount) bytes · BPM/key unknown").font(.caption).foregroundStyle(StudioStyle.muted)
+                        HStack {
+                            Button("Load A") { audio.load(track, into: 0); route = .mixer }
+                            Button("Load B") { audio.load(track, into: 1); route = .mixer }
+                        }
+                        Text("Load does not play. Start playback explicitly in the mixer.").font(.caption2)
+                    }
+                }
+                Button("Clear session library", role: .destructive) { audio.clearLibrary() }
+            }
+            operationStatus
+        }
+    }
+    private var mixer: some View {
+        VStack(spacing: 16) {
+            Text("TWO DECKS · NATIVE AUDIO").font(.headline).foregroundStyle(StudioStyle.cyan)
+            if textSize.isAccessibilitySize {
+                VStack(spacing: 12) { DeckView(index: 0); DeckView(index: 1) }
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: 10) {
+                        DeckView(index: 0).frame(minWidth: 160)
+                        DeckView(index: 1).frame(minWidth: 160)
+                    }
+                    VStack(spacing: 12) { DeckView(index: 0); DeckView(index: 1) }
+                }
+            }
+            StudioPanel {
+                Text("CROSSFADER · A ◀ \(Int((1-audio.crossfade)*100)) / \(Int(audio.crossfade*100)) ▶ B").font(.caption.bold())
+                Slider(value: $audio.crossfade, in: 0...1, step: 0.01).accessibilityLabel("Crossfader from Deck A to Deck B").accessibilityIdentifier("crossfader")
+                Text("Centre-full curve. iOS retains the safer 50% initial gain; Android starts at 100%. No limiter. Keep monitoring volume low.").font(.caption).foregroundStyle(StudioStyle.muted)
+                Button("Pause both decks") { audio.pauseAll() }
+            }
+            StudioPanel {
+                Text("Manual tempo is not beat-aligned SYNC. Scratch, EQ and waveform capture are not implemented here. No decorative waveform is presented as measured audio.").font(.caption)
+            }
+            operationStatus
+        }
+    }
+    private var operationStatus: some View {
+        Text(audio.message).font(.caption).foregroundStyle(StudioStyle.muted).frame(maxWidth: .infinity, alignment: .leading).accessibilityIdentifier("operationStatus")
+    }
+    private var status: some View {
+        VStack(spacing: 16) {
+            StudioPanel {
+                Text("Offline studio").font(.headline)
+                Text("Native navigation and selected-file playback; no server connection, microphone or telemetry.")
+                Text("This is an Android-reference alignment candidate, not verified visual or functional parity.")
+            }
+            StudioPanel {
+                Text("Build and evidence").font(.headline)
+                Text("Source: " + (Bundle.main.object(forInfoDictionaryKey: "LENOXSourceCommit") as? String ?? "local-unrecorded")).font(.caption.monospaced()).textSelection(.enabled)
+                Text("Unsigned test build. iPhone signing, physical-device testing and independent review remain required.")
+                Text("Saved playlists, metadata recommendations, full studio tools and original artwork are still missing on iOS. See the parity handover before continuing.")
+            }
+        }
+    }
+    private var dock: some View {
+        HStack(spacing: 4) {
+            dockItem("Home", symbol: "house", target: .home)
+            dockItem("Library", symbol: "music.note.list", target: .library)
+            dockItem("Playlists", symbol: "list.bullet", target: .playlists)
+            dockItem("Mix", symbol: "slider.horizontal.3", target: .mixer)
+        }.padding(.horizontal, 8).padding(.vertical, 6)
+            .background(StudioStyle.ink)
+            .overlay(alignment: .top) { Rectangle().fill(StudioStyle.outline).frame(height: 1) }
+    }
+    private func dockItem(_ title: String, symbol: String, target: StudioRoute) -> some View {
+        Button { route = target } label: {
+            VStack(spacing: 3) { Image(systemName: symbol); Text(title).font(.caption2) }
+                .foregroundStyle(route == target ? StudioStyle.cyan : StudioStyle.muted)
+                .frame(maxWidth: .infinity, minHeight: 48)
+        }.buttonStyle(.plain).accessibilityIdentifier("dock-" + target.rawValue)
+            .accessibilityAddTraits(route == target ? .isSelected : [])
     }
 }
 
 struct DeckView: View {
     @EnvironmentObject private var audio: AudioModel
+    @State private var selectedID: UUID?
     let index: Int
     private var state: DeckState { audio.decks[index] }
+    private var name: String { index == 0 ? "DECK A" : "DECK B" }
+    private var selected: SelectedTrack? { audio.tracks.first { $0.id == selectedID } }
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text(index == 0 ? "DECK A" : "DECK B").font(.headline).foregroundStyle(.cyan)
-                Spacer(); Text(state.playing ? "Playing" : state.trackID == nil ? "Empty" : "Ready / paused").font(.caption)
-            }
-            Text(state.title).font(.subheadline).lineLimit(2)
-            Menu("Load track") {
-                ForEach(audio.tracks) { track in Button(track.title) { audio.load(track, into: index) } }
-            }.disabled(audio.tracks.isEmpty)
-            HStack {
-                Button("Play") { audio.play(index) }.disabled(state.trackID == nil || !audio.active)
-                Button("Pause") { audio.pause(index) }.disabled(!state.playing)
-                Button("Stop") { audio.stop(index) }.disabled(state.trackID == nil)
-            }.buttonStyle(.bordered)
+        StudioPanel {
+            Text(name + " · NATIVE AUDIO").font(.caption.bold()).foregroundStyle(StudioStyle.cyan)
+            Text(state.title).font(.subheadline.weight(.semibold)).lineLimit(2)
+            Menu {
+                ForEach(audio.tracks) { track in Button(track.title) { selectedID = track.id } }
+            } label: {
+                Text(selected?.title ?? "Choose track").font(.caption).lineLimit(2).frame(minHeight: 44)
+            }.disabled(audio.tracks.isEmpty).accessibilityLabel(name + " track")
+            Button("▶ Load & play") {
+                if let track = selected { audio.loadAndPlay(track, into: index) }
+            }.disabled(selected == nil || !audio.active).accessibilityIdentifier("load-play-\(index)")
+            Button("■ Stop") { audio.stop(index) }.disabled(state.trackID == nil)
+            Button("⏸ Pause") { audio.pause(index) }.disabled(!state.playing)
+            Button("▶ Resume") { audio.play(index) }.disabled(state.trackID == nil || state.playing || !audio.active)
+            Text(StudioRoute.clock(state.position) + " / " + StudioRoute.clock(state.duration)).font(.caption.monospacedDigit())
             Slider(value: Binding(get: { state.position }, set: { audio.seek(index, $0) }), in: 0...max(1, state.duration))
-                .disabled(state.trackID == nil).accessibilityLabel("Deck \(index == 0 ? "A" : "B") position")
-            Text(String(format: "%.1f / %.1f seconds", state.position, state.duration)).font(.caption.monospacedDigit())
-            Text("Gain \(Int(audio.gains[index] * 100))% · Channel \(Int(audio.channels[index] * 100))%").font(.caption)
-            Slider(value: Binding(get: { audio.gains[index] }, set: { audio.gains[index] = $0 }), in: 0...1).accessibilityLabel("Deck gain")
-            Slider(value: Binding(get: { audio.channels[index] }, set: { audio.channels[index] = $0 }), in: 0...1).accessibilityLabel("Channel volume")
-            Text("Manual speed \(Int(audio.rates[index] * 100))% — not SYNC").font(.caption)
-            Slider(value: Binding(get: { audio.rates[index] }, set: { audio.setRate(index, $0) }), in: 0.5...2, step: 0.05).accessibilityLabel("Playback speed")
-        }.padding().background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                .disabled(state.trackID == nil).accessibilityLabel(name + " seek")
+            Text("GAIN · \(Int(audio.gains[index]*100))%").font(.caption.bold())
+            Slider(value: Binding(get: { audio.gains[index] }, set: { audio.gains[index] = $0 }), in: 0...1, step: 0.01).accessibilityLabel(name + " gain")
+            Text("CHANNEL · \(Int(audio.channels[index]*100))%").font(.caption.bold())
+            Slider(value: Binding(get: { audio.channels[index] }, set: { audio.channels[index] = $0 }), in: 0...1, step: 0.01).accessibilityLabel(name + " channel")
+            Text("TEMPO · \(Int((audio.rates[index]*100).rounded()))%").font(.caption.bold())
+            Slider(value: Binding(get: { audio.rates[index] }, set: { audio.setRate(index, $0) }), in: 0.5...2, step: 0.01).accessibilityLabel(name + " playback tempo percentage")
+            Text(state.playing ? "Playing" : state.trackID == nil ? "Idle" : "Ready / paused").font(.caption).foregroundStyle(StudioStyle.muted)
+        }
+        .onChange(of: audio.tracks.count) { _ in if selected == nil { selectedID = nil } }
     }
 }
