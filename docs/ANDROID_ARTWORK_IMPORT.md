@@ -55,3 +55,8 @@ Use these exact resources in the existing native alignment work, not a second de
 Verify both resource hashes inside the built device `.app`/IPA, run existing mixer/lifecycle tests, capture matched states and obtain independent review and Jamie's acceptance. Neither previously compiled IPA contains this future wiring. No source audio, Android branch, signing configuration, permissions or merge settings were modified by the import work.
 
 Continue in existing iOS PR #3 and Android #94; do not create duplicate feature ownership. Update this receipt and the parity register only when resource integration and build evidence actually exist.
+
+
+## Native studio continuation — 2 November 2026
+
+[Draft PR #5](https://github.com/gilfillanjamie2000-del/Lenox-ios/pull/5) continues this preserved milestone. Compiled source `4d7ce70794a378a0fa6cc517804ca0893ece3a2b` adds the two explicitly authorised original assets, native launch video, playlist details/editor, adaptive spinning/jog mixer and multi-import/lifecycle repair. [Studio handover](IOS_STUDIO_HANDOVER.md) · [exact receipt](builds/2026-11-02-4d7ce70794a3-studio.json) · [successful run](https://github.com/gilfillanjamie2000-del/Lenox-ios/actions/runs/41523915266). The earlier evidence above remains historical. The new IPA is unsigned; actual phone Files-provider acceptance and genuine PCM scratching remain open.

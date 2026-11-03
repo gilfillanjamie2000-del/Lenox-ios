@@ -7,7 +7,7 @@ info = plistlib.loads((root/'ios/LENOX/Info.plist').read_bytes())
 assert info['CFBundleIdentifier'] == '$(PRODUCT_BUNDLE_IDENTIFIER)'
 assert 'NSMicrophoneUsageDescription' not in info
 assert 'UIBackgroundModes' not in info
-app = (root/'ios/LENOX/AudioModel.swift').read_text()
+app = (root/'ios/LENOX/AudioModel.swift').read_text(encoding='utf-8')
 for required in ['url.startAccessingSecurityScopedResource()', 'url.stopAccessingSecurityScopedResource()',
                  'guard gate.accepts(pickerToken)', 'if !value { pauseAll() }',
                  'guard valid(deck), active, let player', 'tracks.contains(where:',
@@ -18,7 +18,7 @@ for forbidden in ['URLSession', 'AVAudioRecorder', 'allowsArbitraryLoads', 'WKSc
 for p in root.rglob('*'):
     if p.is_file() and not any(x in p.parts for x in ['.git','.build','reports','out','__pycache__']):
         assert p.suffix.lower() not in ['.p12','.mobileprovision','.key','.pem'], p
-project = (root/'ios/LENOX.xcodeproj/project.pbxproj').read_text()
+project = (root/'ios/LENOX.xcodeproj/project.pbxproj').read_text(encoding='utf-8')
 for name in ['LenoxApp.swift', 'AudioModel.swift', 'MixPolicy.swift']:
     assert name in project
 assert 'CODE_SIGNING_ALLOWED = NO;' in project

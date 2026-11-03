@@ -1,5 +1,14 @@
 import Foundation
 
+enum FileAccessPolicy {
+    static func isContainerURL(_ url: URL, container: URL = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)) -> Bool {
+        guard url.isFileURL, container.isFileURL else { return false }
+        let root = container.resolvingSymlinksInPath().standardizedFileURL.path
+        let path = url.resolvingSymlinksInPath().standardizedFileURL.path
+        return path.hasPrefix(root + "/")
+    }
+}
+
 /// Platform-neutral contract. Invalid control data fails silent, not louder.
 enum MixPolicy {
     static func level(deck: Int, crossfade: Double, gain: Double, channel: Double) -> Float {
@@ -22,8 +31,8 @@ enum MixPolicy {
 struct PlaybackGate {
     private(set) var active = false
     private(set) var generation: UInt64 = 0
-    mutating func setActive(_ value: Bool) {
-        if !value { generation &+= 1 }
+    mutating func setActive(_ value: Bool, invalidatePending: Bool = true) {
+        if !value && invalidatePending { generation &+= 1 }
         active = value
     }
     mutating func invalidate() { generation &+= 1 }
@@ -32,7 +41,7 @@ struct PlaybackGate {
 
 /// Tested navigation/formatting shared by the native reference-alignment views.
 enum StudioRoute: String, CaseIterable {
-    case home, library, playlists, occasions, assistant, mixer, status
+    case home, library, playlists, occasions, assistant, mixer, status, more
     var title: String {
         switch self {
         case .home: return "LENOX"
@@ -42,6 +51,7 @@ enum StudioRoute: String, CaseIterable {
         case .assistant: return "Mix Assistant"
         case .mixer: return "Two-deck mixer"
         case .status: return "System Status"
+        case .more: return "More"
         }
     }
     static func initial(arguments: [String]) -> StudioRoute {

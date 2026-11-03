@@ -10,13 +10,15 @@ assert reference['dock'] == ['Home','Library','Playlists','Mix']
 for name in ['visual_parity_verified','functional_parity_verified','device_pair_tested','independent_review_passed','private_android_assets_published']:
     assert reference[name] is False, 'Do not promote a source contract into an approval: ' + name
 assert len(reference['known_differences']) >= 10
-ui = (root/'ios/LENOX/LenoxApp.swift').read_text()
+ui = (root/'ios/LENOX/LenoxApp.swift').read_text(encoding='utf-8')
+mixer = (root/'ios/LENOX/MixerScreen.swift').read_text(encoding='utf-8')
 audio = (root/'ios/LENOX/AudioModel.swift').read_text()
-for text in ['dockItem("Home"','dockItem("Library"','dockItem("Playlists"','dockItem("Mix"',
-             'in: 0.5...2, step: 0.01','"▶ Load & play"','"■ Stop"','"⏸ Pause"','"▶ Resume"',
-             'audio.loadAndPlay(track, into: index)','StudioRoute.matches','ViewThatFits',
-             'textSize.isAccessibilitySize','Original Android hero','not implemented']:
+for text in ['dockItem("Home"','dockItem("Library"','dockItem("Playlists"','dockItem("Mixer"','dockItem("More"',
+             'StudioRoute.matches','textSize.isAccessibilitySize','Original Android hero','not implemented']:
     assert text in ui, text
+for text in ['in: 0.5...2, step: 0.01','audio.stop(index)','audio.pause(index)','audio.play(index)',
+             'audio.seek(index','audio.jog(index','Crossfader from Deck A to Deck B']:
+    assert text in mixer, text
 assert 'TabView' not in ui, 'Do not restore the unrelated four-tab test UI'
 assert 'WKWebView' not in ui
 assert 'gains = [0.5, 0.5]' in audio, 'Preserve safer default pending an explicit product decision'

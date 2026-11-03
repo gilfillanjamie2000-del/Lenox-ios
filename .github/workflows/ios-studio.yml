@@ -1,0 +1,42 @@
+name: LENOX iOS native studio
+on:
+  push:
+    branches: [feature/ios-performance-studio-20261102]
+    paths: ['ios/**', 'Tests/**', 'scripts/**', 'docs/parity/**', '.github/workflows/ios-studio.yml']
+permissions:
+  contents: read
+concurrency:
+  group: lenox-ios-studio-candidate-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  studio:
+    if: github.repository == 'gilfillanjamie2000-del/Lenox-ios' && github.event.repository.private == false && github.ref == 'refs/heads/feature/ios-performance-studio-20261102'
+    # Same standard macOS 15/Xcode build system. ARM pool failed to allocate a
+    # runner on 2026-11-02; the explicitly labelled Intel pool is also standard.
+    runs-on: macos-15-intel
+    timeout-minutes: 35
+    steps:
+      - name: Exact source checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify preserved baseline, native studio and UI regressions
+        run: bash scripts/ci-studio.sh
+      - name: Retain unsigned candidate and evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: LENOX-iOS-STUDIO-UNSIGNED-${{ github.sha }}
+          path: out/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Retain failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: LENOX-iOS-studio-diagnostics-${{ github.sha }}
+          path: |
+            reports/
+            out/
+          if-no-files-found: warn
+          retention-days: 3

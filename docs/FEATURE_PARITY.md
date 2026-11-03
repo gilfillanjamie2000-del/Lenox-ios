@@ -1,3 +1,19 @@
+# Current native studio continuation — 2 November 2026
+
+Branch `feature/ios-performance-studio-20261102`, based on playlist PR #4. [Two-way handover](IOS_STUDIO_HANDOVER.md). Native CI and all 8 UI scenarios passed on `4d7ce70794a378a0fa6cc517804ca0893ece3a2b`. [Run](https://github.com/gilfillanjamie2000-del/Lenox-ios/actions/runs/41523915266) · [receipt](builds/2026-11-02-4d7ce70794a3-studio.json). Paired Android visual comparison and real-device acceptance remain open. The JSON in `docs/parity/android-reference.json` is the frozen historical alignment contract, not a status claim for these new features.
+
+| Feature | iOS candidate | Android reference / outstanding gate |
+| --- | --- | --- |
+| Original home/intro | Exact owner-authorised hero and bundled MP4, native one-shot player with skip/fallback | V3 `54f01bb…` / intro `c20276a…`; paired visual/device acceptance pending |
+| Playlists / LEN-8 | Search, dedicated details, visible reorder controls; original storage and backup policy retained | Naming/order outcomes shared; backup adapter still required |
+| Library / LEN-7 | Multi-file selection, atomic batch save, inactive-picker handoff fix | SAF folder scanning differs; real iPhone Files/provider acceptance pending |
+| Mixer / LEN-14 / #51 | Native adaptive graphite/lime controls, explicit live-deck replacement, clock-driven platters and bounded jog seek | V4 design #118/#119; Android draft #161 is not inherited as device accepted |
+| PCM scratching / analytics / EQ / SYNC | Unimplemented, honestly explained | Android draft #150 and other DSP proposals remain separately unverified |
+
+The exact two approved assets may be published in public GitHub by Jamie's recorded authorisation. No other private media or Android implementation is included. Existing owners/credit remain.
+
+---
+
 # LENOX iOS ↔ Android Feature Parity Register
 
 This is an evidence index, not a replacement for Linear ownership/status, GitHub reviews or CI. Nothing below establishes physical-device acceptance or full parity by itself.
