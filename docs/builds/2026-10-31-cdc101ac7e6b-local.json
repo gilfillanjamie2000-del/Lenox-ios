@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "repository": "gilfillanjamie2000-del/Lenox-ios",
+  "implementation_commit": "cdc101ac7e6b7c9f5826b21e394760798295617f",
+  "base_commit": "06015b88d5c3ab011229acef6295081037039dfa",
+  "android_reference_commit": "54f01bb213a5d30eaba99ea1f16f1d547b1d82ed",
+  "observed_date": "2026-10-31",
+  "execution_scope": "Local Linux native Swift executable tests and static source checks. Not Xcode compilation, SwiftUI rendering, device validation or independent review.",
+  "portable_policy": {"passed": 41, "failed": 0},
+  "alignment_policy": {"passed": 43, "failed": 0},
+  "static_checks": {
+    "existing_source_checks": "PASS",
+    "alignment_source_checks": "PASS",
+    "swift_frontend_parse": "PASS; not Apple-platform typechecking",
+    "shell_syntax": "PASS"
+  },
+  "commands": [
+    "swiftc ios/LENOX/MixPolicy.swift Tests/main.swift -o .build/policy-tests",
+    ".build/policy-tests",
+    "swiftc ios/LENOX/MixPolicy.swift Tests/Alignment/main.swift -o .build/alignment-tests",
+    ".build/alignment-tests",
+    "python3 scripts/check_source.py",
+    "python3 scripts/check_alignment.py",
+    "bash -n scripts/ci-ios.sh scripts/ci-alignment.sh",
+    "swiftc -frontend -parse ios/LENOX/LenoxApp.swift ios/LENOX/AudioModel.swift ios/LENOX/MixPolicy.swift"
+  ],
+  "deliberate_mutations": [
+    {"mutation": "crossfade_wrong_curve", "compiled": true, "detected": true, "failed_assertions": 6},
+    {"mutation": "wrong_home_route", "compiled": true, "detected": true, "failed_assertions": 1},
+    {"mutation": "case_sensitive_search", "compiled": true, "detected": true, "failed_assertions": 2},
+    {"mutation": "unsafe_tempo_maximum", "compiled": true, "detected": true, "failed_assertions": 1}
+  ],
+  "matched_git_blobs": {
+    "ios/LENOX/LenoxApp.swift": "33e01528f7ca554da652e15f738486edddecd209",
+    "ios/LENOX/AudioModel.swift": "1fb3c5780124da228f628f7ab2e8707eae6d052f",
+    "ios/LENOX/MixPolicy.swift": "898d18e2fae9b0dba4a41e90aa81bac736e061a9",
+    "Tests/Alignment/main.swift": "42842e48f7aa21faf0dcbe4299133730beb585a6",
+    "scripts/check_alignment.py": "0f72f8c2125bb6750e3a23571f44d66862189565",
+    "scripts/ci-ios.sh": "3fa8b96637656cc78621af7dc8821ddb22e92ce3",
+    "scripts/ci-alignment.sh": "ade452faa9f3f4110a9473169bc8661a9c50573f",
+    "docs/parity/android-reference.json": "52ab34d5648c85a8f93c92e2417be19cbf14931b",
+    "docs/ANDROID_REFERENCE_ALIGNMENT.md": "0c079915337478790f619852ab2a973adb60d0f0"
+  },
+  "cloud_run_id": 41214780323,
+  "cloud_result": "Not asserted by this local receipt; read the exact run",
+  "visual_parity_verified": false,
+  "functional_parity_verified": false,
+  "physical_devices_tested": false,
+  "independent_review_passed": false,
+  "new_installable_ipa_claimed": false
+}

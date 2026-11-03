@@ -1,0 +1,15 @@
+{
+  "source_commit": "c977c95c063d72d9734787180ea39d66c952e451",
+  "command": "LENOX_TEST_APK=../private-assets/Lenox-reference-54f01bb.apk python3 -m unittest discover -s Tests -p test_android_artwork.py -v",
+  "environment": "WSL decomp-wtf, Python unittest",
+  "tests_run": 22,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "android_source": "54f01bb213a5d30eaba99ea1f16f1d547b1d82ed",
+  "reference_apk_sha256": "5e38c70b1d0a8f275d622659e02cf52cb4e7a35a3562df10eb37a7e6fd04cda0",
+  "reference_artifact_id": 13040240336,
+  "reference_artifact_sha256": "8f87f1d3d59cd4304ae65206da95af47ab5a9f271d84c365cc08502117300a57",
+  "scope": "Executed artwork importer guard and pinned-source integration tests; not native UI or physical-device acceptance",
+  "initial_windows_environment_limit": "Two symlink cases required privileges unavailable to native Windows Python; all 22 passed under WSL. Source readers were also made explicitly UTF-8."
+}

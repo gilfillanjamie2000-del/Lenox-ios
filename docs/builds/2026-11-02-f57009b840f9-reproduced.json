@@ -1,0 +1,31 @@
+{
+  "application_source_commit": "f57009b840f96103a17265018d0e5cf692670a45",
+  "workflow_source_commit": "f8f275927f79f7a9a5cdf65864e89c2a821b412c",
+  "run_id": 41512834080,
+  "run_url": "https://github.com/gilfillanjamie2000-del/Lenox-ios/actions/runs/41512834080",
+  "result": "success",
+  "runner": "standard macos-15-intel",
+  "xcode": "Xcode 16.4 (16F6)",
+  "swift_version_retention": "The unchanged historical script recorded a runner report but did not copy it into its successful artifact. The new studio pipeline retains all reports.",
+  "assertions": {
+    "mixer": 41,
+    "alignment": 43,
+    "playlists": 60,
+    "native_audio": 12,
+    "native_write": 5,
+    "separate_launch_restore": 7
+  },
+  "artifact_id": 13173649134,
+  "artifact_url": "https://github.com/gilfillanjamie2000-del/Lenox-ios/actions/runs/41512834080/artifacts/13173649134",
+  "artifact_sha256": "c9dc7d93f3e5a02408c52cf6e15573be7d539b0df02786ddd374f2f592b7a7b4",
+  "local_zip_integrity": "PASS",
+  "local_manifest_hashes_verified": 26,
+  "ipa_bytes": 476992,
+  "ipa_sha256": "ce771f0d41342d44baf02ea41379378a9a1900780edc62fd147c55ea976252f7",
+  "signing": "UNSIGNED, no provisioning profile",
+  "directly_installable_on_iphone": false,
+  "physical_device_tested": false,
+  "independent_qa_approval": false,
+  "bit_for_bit_build_reproducibility_claimed": false,
+  "local_source_blobs_verified": 40
+}
