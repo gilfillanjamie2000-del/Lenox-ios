@@ -12,6 +12,8 @@ Read [the complete studio handover](docs/IOS_STUDIO_HANDOVER.md) for assets/publ
 
 Build with `bash scripts/ci-studio.sh` on the existing GitHub macOS/Xcode system. The standard macOS 15 Intel pool is used after GitHub could not allocate the macOS 15 ARM runner. The compiled source is `4d7ce70794a378a0fa6cc517804ca0893ece3a2b`; later documentation commits are not new application builds. Landscape rotation exposes A/mixer/B; portrait uses focused deck controls. Controls are bounded by the window in the UI regression.
 
+**LIVE TESTED:** iammrmikeman confirms IPA works on iPhone XR ios 17.5 Dopamine3 - TrollstoreLight + AppsyncUnified 
+
 ---
 
 ## Preserved 31 October playlist milestone
